@@ -63,32 +63,18 @@
                 canvas: canvas,
                 autoplay: true,
                 fit: fitMap[fit] || rive.Fit.Contain,
-                useOffscreenRenderer: false,
+                shouldDisableRiveListeners: false,
+                isTouchScrollEnabled: false,
                 onLoad: function() {
                     console.log('✅ Rive loaded');
                     r.resizeDrawingSurfaceToCanvas();
+                    
+                    // Start manual render loop to keep scripting alive
+                    startRenderLoop();
                 },
                 onLoadError: function(e) {
                     showError('Failed to load: ' + src);
                     console.error('Load error:', e);
-                },
-                onPlay: function() {
-                    console.log('▶️ Playing');
-                },
-                onPause: function() {
-                    console.log('⏸️ Paused');
-                },
-                onStop: function() {
-                    console.log('⏹️ Stopped');
-                    // Auto-restart if stopped unexpectedly
-                    setTimeout(() => {
-                        if (r && !r.isPlaying) {
-                            r.play();
-                        }
-                    }, 100);
-                },
-                onStateChange: function(event) {
-                    console.log('State change:', event.data);
                 }
             };
 
@@ -101,6 +87,29 @@
             }
 
             const r = new rive.Rive(config);
+
+            // Manual render loop to keep scripting running
+            let lastTime = 0;
+            function renderLoop(time) {
+                if (!lastTime) lastTime = time;
+                const delta = (time - lastTime) / 1000;
+                lastTime = time;
+                
+                if (r && r.renderer) {
+                    r.advance(delta);
+                    r.draw();
+                }
+                
+                requestAnimationFrame(renderLoop);
+            }
+            
+            function startRenderLoop() {
+                // Stop the default animation loop
+                r.stop();
+                // Start our own continuous loop
+                requestAnimationFrame(renderLoop);
+                console.log('🔄 Manual render loop started');
+            }
 
             // Pointer events
             function getCoords(event) {
