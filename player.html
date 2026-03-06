@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v11</title>
+    <title>Rive Player v12</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -38,8 +38,10 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="error" style="display: none;"></div>
     
+    <!-- Use UMD build -->
+    <script src="https://unpkg.com/@rive-app/canvas@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v11');
+        console.log('🚀 Rive Player v12');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -66,181 +68,83 @@
             canvas.style.display = 'block';
         }
 
-        // Dynamically load the Rive runtime
-        function loadRiveRuntime() {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@rive-app/canvas-advanced@latest';
-                script.onload = () => {
-                    console.log('📦 Rive runtime loaded');
-                    resolve();
-                };
-                script.onerror = () => {
-                    reject(new Error('Failed to load Rive runtime script'));
-                };
-                document.head.appendChild(script);
-            });
-        }
-
         async function main() {
             if (!src) {
                 showError('No src parameter provided');
                 return;
             }
+            
+            if (typeof rive === 'undefined') {
+                showError('Failed to load Rive runtime');
+                return;
+            }
 
             try {
-                // Load the runtime dynamically
-                await loadRiveRuntime();
-                
-                if (typeof rive === 'undefined') {
-                    showError('Rive runtime not available');
-                    return;
-                }
-
-                // Initialize the advanced runtime
-                const riveInstance = await rive.default({
-                    locateFile: (file) => `https://unpkg.com/@rive-app/canvas-advanced@latest/${file}`
-                });
-                
-                console.log('✅ Rive initialized');
-                
-                // Fit and alignment maps
+                // Fit mapping
                 const fitMap = {
-                    'contain': riveInstance.Fit.contain,
-                    'cover': riveInstance.Fit.cover,
-                    'fill': riveInstance.Fit.fill,
-                    'fitwidth': riveInstance.Fit.fitWidth,
-                    'fitheight': riveInstance.Fit.fitHeight,
-                    'none': riveInstance.Fit.none,
-                    'scaledown': riveInstance.Fit.scaleDown
+                    'contain': rive.Fit.Contain,
+                    'cover': rive.Fit.Cover,
+                    'fill': rive.Fit.Fill,
+                    'fitwidth': rive.Fit.FitWidth,
+                    'fitheight': rive.Fit.FitHeight,
+                    'none': rive.Fit.None,
+                    'scaledown': rive.Fit.ScaleDown
                 };
                 
+                // Alignment mapping
                 const alignMap = {
-                    'center': riveInstance.Alignment.center,
-                    'topleft': riveInstance.Alignment.topLeft,
-                    'topcenter': riveInstance.Alignment.topCenter,
-                    'topright': riveInstance.Alignment.topRight,
-                    'centerleft': riveInstance.Alignment.centerLeft,
-                    'centerright': riveInstance.Alignment.centerRight,
-                    'bottomleft': riveInstance.Alignment.bottomLeft,
-                    'bottomcenter': riveInstance.Alignment.bottomCenter,
-                    'bottomright': riveInstance.Alignment.bottomRight
+                    'center': rive.Alignment.Center,
+                    'topleft': rive.Alignment.TopLeft,
+                    'topcenter': rive.Alignment.TopCenter,
+                    'topright': rive.Alignment.TopRight,
+                    'centerleft': rive.Alignment.CenterLeft,
+                    'centerright': rive.Alignment.CenterRight,
+                    'bottomleft': rive.Alignment.BottomLeft,
+                    'bottomcenter': rive.Alignment.BottomCenter,
+                    'bottomright': rive.Alignment.BottomRight
                 };
                 
-                const selectedFit = fitMap[fitParam.toLowerCase()] || riveInstance.Fit.contain;
-                const selectedAlign = alignMap[alignParam.toLowerCase()] || riveInstance.Alignment.center;
+                const selectedFit = fitMap[fitParam.toLowerCase()] || rive.Fit.Contain;
+                const selectedAlign = alignMap[alignParam.toLowerCase()] || rive.Alignment.Center;
                 
                 console.log('📐 Fit:', fitParam, '| Align:', alignParam);
                 
-                // Show canvas
-                showCanvas();
+                // Create layout
+                const layout = new rive.Layout({
+                    fit: selectedFit,
+                    alignment: selectedAlign
+                });
+
+                // Config
+                const config = {
+                    src: src,
+                    canvas: canvas,
+                    layout: layout,
+                    autoplay: true,
+                    stateMachines: stateMachineName,
+                    automaticallyHandleEvents: true,
+                    enableRiveAssetCDN: true,
+                    onLoad: () => {
+                        console.log('✅ Loaded');
+                        showCanvas();
+                        r.resizeDrawingSurfaceToCanvas();
+                    },
+                    onLoadError: (e) => {
+                        showError('Failed to load: ' + (e.message || e));
+                    }
+                };
                 
-                // Create renderer
-                const renderer = riveInstance.makeRenderer(canvas);
-                
-                // Load file
-                console.log('📥 Loading:', src);
-                const response = await fetch(src);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch file: ${response.status}`);
-                }
-                const bytes = await response.arrayBuffer();
-                const file = await riveInstance.load(new Uint8Array(bytes));
-                
-                // Get artboard
-                let artboard;
+                // Add artboard if specified
                 if (artboardName) {
-                    artboard = file.artboardByName(artboardName);
-                }
-                if (!artboard) {
-                    artboard = file.defaultArtboard();
-                }
-                
-                console.log('🎨 Artboard:', artboard.name);
-                
-                // Get state machine
-                let stateMachine;
-                const smDef = artboard.stateMachineByName(stateMachineName) || artboard.stateMachineByIndex(0);
-                if (smDef) {
-                    stateMachine = new riveInstance.StateMachineInstance(smDef, artboard);
-                    console.log('⚙️ State machine:', stateMachineName);
-                } else {
-                    console.warn('⚠️ No state machine found');
+                    config.artboard = artboardName;
                 }
 
-                // Resize canvas
-                function resize() {
-                    const dpr = window.devicePixelRatio || 1;
-                    canvas.width = canvas.clientWidth * dpr;
-                    canvas.height = canvas.clientHeight * dpr;
-                }
-                resize();
-                window.addEventListener('resize', resize);
+                const r = new rive.Rive(config);
 
-                // Render loop
-                let lastTime = 0;
-                function renderLoop(time) {
-                    if (!lastTime) lastTime = time;
-                    const elapsedSec = (time - lastTime) / 1000;
-                    lastTime = time;
-                    
-                    if (stateMachine) {
-                        stateMachine.advance(elapsedSec);
-                    }
-                    artboard.advance(elapsedSec);
-                    
-                    renderer.clear();
-                    renderer.save();
-                    renderer.align(
-                        selectedFit,
-                        selectedAlign,
-                        {
-                            minX: 0,
-                            minY: 0,
-                            maxX: canvas.width,
-                            maxY: canvas.height
-                        },
-                        artboard.bounds
-                    );
-                    artboard.draw(renderer);
-                    renderer.restore();
-                    
-                    requestAnimationFrame(renderLoop);
-                }
-
-                // Pointer events
-                function getArtboardCoords(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const dpr = window.devicePixelRatio || 1;
-                    return {
-                        x: (e.clientX - rect.left) * dpr,
-                        y: (e.clientY - rect.top) * dpr
-                    };
-                }
-
-                canvas.addEventListener('pointerdown', (e) => {
-                    if (stateMachine) {
-                        const coords = getArtboardCoords(e);
-                        stateMachine.pointerDown(coords.x, coords.y);
-                    }
+                // Handle resize
+                window.addEventListener('resize', () => {
+                    r.resizeDrawingSurfaceToCanvas();
                 });
-
-                canvas.addEventListener('pointerup', (e) => {
-                    if (stateMachine) {
-                        const coords = getArtboardCoords(e);
-                        stateMachine.pointerUp(coords.x, coords.y);
-                    }
-                });
-
-                canvas.addEventListener('pointermove', (e) => {
-                    if (stateMachine) {
-                        const coords = getArtboardCoords(e);
-                        stateMachine.pointerMove(coords.x, coords.y);
-                    }
-                });
-
-                console.log('✅ Playing');
-                requestAnimationFrame(renderLoop);
                 
             } catch (e) {
                 console.error('❌ Error:', e);
