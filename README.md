@@ -2,6 +2,8 @@
 
 A Framer component to embed Rive animations with full scripting support, feathering, and all fit/alignment options.
 
+Created by [Tom Acco](https://rivemasterclass.com), instructor of Rive Masterclass.
+
 ## Features
 
 - Rive Scripting support
@@ -21,14 +23,32 @@ In your Framer project, create a new **Code Component** and paste this code:
 import { addPropertyControls, ControlType } from "framer"
 
 export default function RivePlayer(props) {
-    const { src, artboard, stateMachine, fit, alignment, debug } = props
+    const { src, baseUrl, artboard, stateMachine, fit, alignment, debug } = props
     
     const playerUrl = "https://tomaccoux.github.io/rive-framer-player/player.html"
-    const defaultBaseUrl = "https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/"
     
     let riveSrc = src
-    if (src && !src.startsWith("http")) {
-        riveSrc = defaultBaseUrl + src
+    if (src && !src.startsWith("http") && baseUrl) {
+        riveSrc = baseUrl.replace(/\/$/, "") + "/" + src
+    }
+    
+    if (!riveSrc || (!riveSrc.startsWith("http") && !baseUrl)) {
+        return (
+            <div style={{ 
+                width: "100%", 
+                height: "100%", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                fontFamily: "system-ui, sans-serif",
+                fontSize: 14,
+                color: "#666",
+                padding: 20,
+                textAlign: "center"
+            }}>
+                Enter a Rive file URL or set a Base URL + filename
+            </div>
+        )
     }
     
     const params = new URLSearchParams()
@@ -42,7 +62,7 @@ export default function RivePlayer(props) {
 
     if (debug) {
         return (
-            <div style={{ padding: 10, fontSize: 12, wordBreak: "break-all" }}>
+            <div style={{ padding: 10, fontSize: 12, wordBreak: "break-all", fontFamily: "monospace" }}>
                 <strong>URL:</strong> {fullUrl}
             </div>
         )
@@ -65,19 +85,28 @@ export default function RivePlayer(props) {
 addPropertyControls(RivePlayer, {
     debug: {
         type: ControlType.Boolean,
-        title: "Debug Mode",
+        title: "Debug",
         defaultValue: false,
+    },
+    baseUrl: {
+        type: ControlType.String,
+        title: "Base URL",
+        defaultValue: "",
+        placeholder: "https://raw.githubusercontent.com/you/repo/main/",
+        description: "Base URL for your Rive files (optional if using full URLs)",
     },
     src: {
         type: ControlType.String,
         title: "Rive File",
-        defaultValue: "lightning_test.riv",
-        placeholder: "filename.riv or full URL",
+        defaultValue: "",
+        placeholder: "animation.riv or https://...",
+        description: "Filename (requires Base URL) or full URL",
     },
     artboard: {
         type: ControlType.String,
         title: "Artboard",
         defaultValue: "",
+        placeholder: "Default artboard",
     },
     stateMachine: {
         type: ControlType.String,
@@ -101,39 +130,44 @@ addPropertyControls(RivePlayer, {
 })
 ```
 
-### 2. Use with Any Rive File
+### 2. Configure Your Rive Files
 
-**Option A: Use a URL**
+**Option A: Use Full URLs**
+- Set `src` to the full URL of your Rive file
+- Example: `https://your-cdn.com/animations/hero.riv`
+
+**Option B: Use Base URL + Filename**
+1. Host your `.riv` files on GitHub, CDN, or any static hosting
+2. Set `Base URL` to your folder URL (e.g., `https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/`)
+3. Set `src` to just the filename (e.g., `hero.riv`)
+
+## Hosting Your Rive Files
+
+### GitHub (Free)
+1. Create a repository
+2. Upload your `.riv` files
+3. Use the raw URL: `https://raw.githubusercontent.com/USERNAME/REPO/main/`
+
+### Other Options
+- Cloudflare R2
+- AWS S3
+- Any static file hosting
+
+## URL Parameters (Advanced)
+
+You can also use the player directly via URL:
+
 ```
-https://your-site.com/animation.riv
+https://tomaccoux.github.io/rive-framer-player/player.html?src=YOUR_RIVE_URL&fit=cover&align=center
 ```
-
-**Option B: Host on GitHub**
-1. Fork this repo
-2. Add your `.riv` files
-3. Use just the filename: `my-animation.riv`
-
-## URL Parameters
 
 | Parameter | Example | Description |
 |-----------|---------|-------------|
 | `src` | `https://...file.riv` | Rive file URL (required) |
-| `fit` | `cover` | Fit mode |
-| `align` | `topLeft` | Alignment |
+| `fit` | `cover` | contain, cover, fill, fitWidth, fitHeight, none, scaleDown |
+| `align` | `topLeft` | center, topLeft, topCenter, topRight, centerLeft, centerRight, bottomLeft, bottomCenter, bottomRight |
 | `artboard` | `MyArtboard` | Artboard name |
 | `sm` | `State Machine 1` | State machine name |
-
-## Direct URL Usage
-
-You can also use the player directly without Framer:
-
-```
-https://tomaccoux.github.io/rive-framer-player/player.html?src=YOUR_RIVE_URL&fit=cover
-```
-
-## Credits
-
-Created by [Tom Acco](https://rivemasterclass.com), instructor of Rive Masterclass.
 
 ## License
 
