@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v5</title>
+    <title>Rive Player v6</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -27,16 +27,16 @@
     <canvas id="rive-canvas"></canvas>
     <div id="error" class="error" style="display: none;"></div>
     
-    <!-- Use Rive Renderer (pls) for full feature support -->
     <script src="https://unpkg.com/@rive-app/webgl2-advanced@latest"></script>
     <script>
-        console.log('🚀 Rive Player v5 (Advanced WebGL2)');
+        console.log('🚀 Rive Player v6');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
-        const artboard = params.get('artboard');
+        const artboardName = params.get('artboard');
         const stateMachineName = params.get('stateMachine') || params.get('sm') || 'State Machine 1';
-        const fit = params.get('fit') || 'contain';
+        const fitParam = params.get('fit') || 'contain';
+        const alignParam = params.get('align') || 'center';
         
         const canvas = document.getElementById('rive-canvas');
         const errorDiv = document.getElementById('error');
@@ -59,25 +59,67 @@
             }
 
             try {
-                // Initialize Rive with the advanced renderer
                 await rive.default({
                     locateFile: (file) => `https://unpkg.com/@rive-app/webgl2-advanced@latest/${file}`
                 });
+                
+                // Map fit modes
+                const fitMap = {
+                    'contain': rive.Fit.contain,
+                    'cover': rive.Fit.cover,
+                    'fill': rive.Fit.fill,
+                    'fitWidth': rive.Fit.fitWidth,
+                    'fitHeight': rive.Fit.fitHeight,
+                    'none': rive.Fit.none,
+                    'scaleDown': rive.Fit.scaleDown
+                };
+                
+                // Map alignments
+                const alignMap = {
+                    'center': rive.Alignment.center,
+                    'topLeft': rive.Alignment.topLeft,
+                    'topCenter': rive.Alignment.topCenter,
+                    'topRight': rive.Alignment.topRight,
+                    'centerLeft': rive.Alignment.centerLeft,
+                    'centerRight': rive.Alignment.centerRight,
+                    'bottomLeft': rive.Alignment.bottomLeft,
+                    'bottomCenter': rive.Alignment.bottomCenter,
+                    'bottomRight': rive.Alignment.bottomRight
+                };
+                
+                const selectedFit = fitMap[fitParam] || rive.Fit.contain;
+                const selectedAlign = alignMap[alignParam] || rive.Alignment.center;
+                
+                console.log('📐 Fit:', fitParam, '| Align:', alignParam);
                 
                 const renderer = rive.makeRenderer(canvas, true);
                 const bytes = await (await fetch(src)).arrayBuffer();
                 const file = await rive.load(new Uint8Array(bytes));
                 
-                const artboardInstance = file.defaultArtboard();
-                const stateMachine = artboardInstance.stateMachineByName(stateMachineName) || 
-                                    artboardInstance.stateMachineByIndex(0);
+                // Get artboard
+                let artboardInstance;
+                if (artboardName) {
+                    artboardInstance = file.artboardByName(artboardName);
+                }
+                if (!artboardInstance) {
+                    artboardInstance = file.defaultArtboard();
+                }
+                
+                // Get state machine
+                let stateMachine;
+                if (stateMachineName) {
+                    stateMachine = artboardInstance.stateMachineByName(stateMachineName);
+                }
+                if (!stateMachine) {
+                    stateMachine = artboardInstance.stateMachineByIndex(0);
+                }
                 
                 if (!stateMachine) {
                     showError('No state machine found');
                     return;
                 }
 
-                console.log('✅ Loaded with advanced renderer');
+                console.log('✅ Loaded');
                 console.log('🎨 Artboard:', artboardInstance.name);
                 console.log('⚙️ State machine:', stateMachineName);
 
@@ -94,8 +136,8 @@
                     
                     renderer.save();
                     renderer.align(
-                        rive.Fit.contain,
-                        rive.Alignment.center,
+                        selectedFit,
+                        selectedAlign,
                         {
                             minX: 0,
                             minY: 0,
@@ -111,13 +153,10 @@
                     requestAnimationFrame(renderLoop);
                 }
 
-                // Handle pointer events
+                // Pointer events
                 canvas.addEventListener('pointerdown', (e) => {
                     const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    stateMachine.pointerDown(x, y);
-                    console.log('👆 Click:', x, y);
+                    stateMachine.pointerDown(e.clientX - rect.left, e.clientY - rect.top);
                 });
 
                 canvas.addEventListener('pointerup', (e) => {
@@ -130,7 +169,7 @@
                     stateMachine.pointerMove(e.clientX - rect.left, e.clientY - rect.top);
                 });
 
-                // Handle resize
+                // Resize
                 function resize() {
                     const dpr = window.devicePixelRatio || 1;
                     canvas.width = canvas.clientWidth * dpr;
