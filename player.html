@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v7</title>
+    <title>Rive Player v8</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -29,7 +29,7 @@
     
     <script src="https://unpkg.com/@rive-app/webgl2@2.21.6"></script>
     <script>
-        console.log('🚀 Rive Player v7 (WebGL2)');
+        console.log('🚀 Rive Player v8');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -47,36 +47,6 @@
             errorDiv.textContent = msg;
         }
 
-        // Map fit modes to Rive Fit enum
-        function getFit(fitName) {
-            const fits = {
-                'contain': rive.Fit.Contain,
-                'cover': rive.Fit.Cover,
-                'fill': rive.Fit.Fill,
-                'fitwidth': rive.Fit.FitWidth,
-                'fitheight': rive.Fit.FitHeight,
-                'none': rive.Fit.None,
-                'scaledown': rive.Fit.ScaleDown
-            };
-            return fits[fitName.toLowerCase()] || rive.Fit.Contain;
-        }
-
-        // Map alignment to Rive Alignment enum
-        function getAlignment(alignName) {
-            const aligns = {
-                'center': rive.Alignment.Center,
-                'topleft': rive.Alignment.TopLeft,
-                'topcenter': rive.Alignment.TopCenter,
-                'topright': rive.Alignment.TopRight,
-                'centerleft': rive.Alignment.CenterLeft,
-                'centerright': rive.Alignment.CenterRight,
-                'bottomleft': rive.Alignment.BottomLeft,
-                'bottomcenter': rive.Alignment.BottomCenter,
-                'bottomright': rive.Alignment.BottomRight
-            };
-            return aligns[alignName.toLowerCase()] || rive.Alignment.Center;
-        }
-
         async function main() {
             if (!src) {
                 showError('No src parameter provided');
@@ -89,20 +59,49 @@
             }
 
             try {
-                const selectedFit = getFit(fitParam);
-                const selectedAlign = getAlignment(alignParam);
+                // Map fit param to Rive Fit enum
+                const fitMap = {
+                    'contain': rive.Fit.Contain,
+                    'cover': rive.Fit.Cover,
+                    'fill': rive.Fit.Fill,
+                    'fitwidth': rive.Fit.FitWidth,
+                    'fitheight': rive.Fit.FitHeight,
+                    'none': rive.Fit.None,
+                    'scaledown': rive.Fit.ScaleDown
+                };
+                
+                // Map alignment param to Rive Alignment enum
+                const alignMap = {
+                    'center': rive.Alignment.Center,
+                    'topleft': rive.Alignment.TopLeft,
+                    'topcenter': rive.Alignment.TopCenter,
+                    'topright': rive.Alignment.TopRight,
+                    'centerleft': rive.Alignment.CenterLeft,
+                    'centerright': rive.Alignment.CenterRight,
+                    'bottomleft': rive.Alignment.BottomLeft,
+                    'bottomcenter': rive.Alignment.BottomCenter,
+                    'bottomright': rive.Alignment.BottomRight
+                };
+                
+                const selectedFit = fitMap[fitParam.toLowerCase()] || rive.Fit.Contain;
+                const selectedAlign = alignMap[alignParam.toLowerCase()] || rive.Alignment.Center;
                 
                 console.log('📐 Fit:', fitParam, '| Align:', alignParam);
+
+                // Create layout with fit and alignment
+                const layout = new rive.Layout({
+                    fit: selectedFit,
+                    alignment: selectedAlign
+                });
 
                 const riveConfig = {
                     src: src,
                     canvas: canvas,
+                    layout: layout,
                     autoplay: true,
                     stateMachines: stateMachineName,
                     automaticallyHandleEvents: true,
                     enableRiveAssetCDN: true,
-                    fit: selectedFit,
-                    alignment: selectedAlign,
                     onLoad: () => {
                         console.log('✅ Loaded');
                         r.resizeDrawingSurfaceToCanvas();
