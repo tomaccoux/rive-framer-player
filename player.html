@@ -6,47 +6,87 @@
     <title>Rive Player</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; overflow: hidden; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
         canvas { width: 100%; height: 100%; display: block; }
+        .error { 
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: system-ui, sans-serif;
+            color: #c00;
+            font-size: 14px;
+            padding: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <canvas id="rive-canvas"></canvas>
+    <div id="error" class="error" style="display: none;"></div>
     
     <script src="https://unpkg.com/@rive-app/canvas@2.10.4"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
         const artboard = params.get('artboard');
-        const stateMachine = params.get('stateMachine');
+        const stateMachine = params.get('stateMachine') || params.get('sm');
         const fit = params.get('fit') || 'contain';
         
-        const fitMap = {
-            'contain': rive.Fit.Contain,
-            'cover': rive.Fit.Cover,
-            'fill': rive.Fit.Fill,
-            'fitWidth': rive.Fit.FitWidth,
-            'fitHeight': rive.Fit.FitHeight,
-            'none': rive.Fit.None,
-            'scaleDown': rive.Fit.ScaleDown
-        };
+        const canvas = document.getElementById('rive-canvas');
+        const errorDiv = document.getElementById('error');
 
-        if (src) {
-            const r = new rive.Rive({
-                src: src,
-                canvas: document.getElementById('rive-canvas'),
-                artboard: artboard || undefined,
-                stateMachines: stateMachine || undefined,
-                autoplay: true,
-                fit: fitMap[fit] || rive.Fit.Contain,
-                onLoad: () => {
-                    r.resizeDrawingSurfaceToCanvas();
+        function showError(msg) {
+            canvas.style.display = 'none';
+            errorDiv.style.display = 'flex';
+            errorDiv.textContent = msg;
+        }
+
+        if (!src) {
+            showError('No src parameter provided. Use: ?src=YOUR_RIVE_URL');
+        } else if (typeof rive === 'undefined') {
+            showError('Failed to load Rive runtime');
+        } else {
+            const fitMap = {
+                'contain': rive.Fit.Contain,
+                'cover': rive.Fit.Cover,
+                'fill': rive.Fit.Fill,
+                'fitWidth': rive.Fit.FitWidth,
+                'fitHeight': rive.Fit.FitHeight,
+                'none': rive.Fit.None,
+                'scaleDown': rive.Fit.ScaleDown
+            };
+
+            try {
+                const config = {
+                    src: src,
+                    canvas: canvas,
+                    autoplay: true,
+                    fit: fitMap[fit] || rive.Fit.Contain,
+                    onLoad: function() {
+                        r.resizeDrawingSurfaceToCanvas();
+                    },
+                    onLoadError: function(e) {
+                        showError('Failed to load Rive file: ' + src);
+                    }
+                };
+
+                if (artboard && artboard.length > 0) {
+                    config.artboard = artboard;
                 }
-            });
+                if (stateMachine && stateMachine.length > 0) {
+                    config.stateMachines = stateMachine;
+                }
 
-            window.addEventListener('resize', () => {
-                r.resizeDrawingSurfaceToCanvas();
-            });
+                const r = new rive.Rive(config);
+
+                window.addEventListener('resize', function() {
+                    r.resizeDrawingSurfaceToCanvas();
+                });
+            } catch (e) {
+                showError('Error: ' + e.message);
+            }
         }
     </script>
 </body>
