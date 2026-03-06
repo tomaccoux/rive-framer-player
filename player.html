@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v9</title>
+    <title>Rive Player v10</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -27,9 +27,9 @@
     <canvas id="rive-canvas"></canvas>
     <div id="error" class="error" style="display: none;"></div>
     
-    <script src="https://unpkg.com/@rive-app/canvas-advanced@2.21.6"></script>
+    <script src="https://unpkg.com/@rive-app/canvas-advanced@latest"></script>
     <script>
-        console.log('🚀 Rive Player v9 (Advanced Canvas)');
+        console.log('🚀 Rive Player v10 (Latest Advanced Canvas)');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -61,7 +61,7 @@
             try {
                 // Initialize the advanced runtime
                 const riveInstance = await rive.default({
-                    locateFile: (file) => `https://unpkg.com/@rive-app/canvas-advanced@2.21.6/${file}`
+                    locateFile: (file) => `https://unpkg.com/@rive-app/canvas-advanced@latest/${file}`
                 });
                 
                 // Fit and alignment maps
@@ -112,20 +112,13 @@
                 
                 // Get state machine
                 let stateMachine;
-                if (stateMachineName) {
-                    stateMachine = new riveInstance.StateMachineInstance(
-                        artboard.stateMachineByName(stateMachineName),
-                        artboard
-                    );
+                const smDef = artboard.stateMachineByName(stateMachineName) || artboard.stateMachineByIndex(0);
+                if (smDef) {
+                    stateMachine = new riveInstance.StateMachineInstance(smDef, artboard);
+                    console.log('⚙️ State machine:', stateMachineName);
+                } else {
+                    console.warn('⚠️ No state machine found');
                 }
-                if (!stateMachine) {
-                    stateMachine = new riveInstance.StateMachineInstance(
-                        artboard.stateMachineByIndex(0),
-                        artboard
-                    );
-                }
-                
-                console.log('⚙️ State machine loaded');
 
                 // Resize canvas
                 function resize() {
@@ -144,7 +137,9 @@
                     lastTime = time;
                     
                     // Advance state machine and artboard
-                    stateMachine.advance(elapsedSec);
+                    if (stateMachine) {
+                        stateMachine.advance(elapsedSec);
+                    }
                     artboard.advance(elapsedSec);
                     
                     // Clear and draw
@@ -178,18 +173,24 @@
                 }
 
                 canvas.addEventListener('pointerdown', (e) => {
-                    const coords = getArtboardCoords(e);
-                    stateMachine.pointerDown(coords.x, coords.y);
+                    if (stateMachine) {
+                        const coords = getArtboardCoords(e);
+                        stateMachine.pointerDown(coords.x, coords.y);
+                    }
                 });
 
                 canvas.addEventListener('pointerup', (e) => {
-                    const coords = getArtboardCoords(e);
-                    stateMachine.pointerUp(coords.x, coords.y);
+                    if (stateMachine) {
+                        const coords = getArtboardCoords(e);
+                        stateMachine.pointerUp(coords.x, coords.y);
+                    }
                 });
 
                 canvas.addEventListener('pointermove', (e) => {
-                    const coords = getArtboardCoords(e);
-                    stateMachine.pointerMove(coords.x, coords.y);
+                    if (stateMachine) {
+                        const coords = getArtboardCoords(e);
+                        stateMachine.pointerMove(coords.x, coords.y);
+                    }
                 });
 
                 // Start rendering
