@@ -7,7 +7,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
-        canvas { width: 100%; height: 100%; display: block; }
+        canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
         .error { 
             width: 100%; 
             height: 100%; 
@@ -26,7 +26,6 @@
     <canvas id="rive-canvas"></canvas>
     <div id="error" class="error" style="display: none;"></div>
     
-    <!-- Use latest Rive runtime with scripting support -->
     <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
@@ -45,7 +44,7 @@
         }
 
         if (!src) {
-            showError('No src parameter provided. Use: ?src=YOUR_RIVE_URL');
+            showError('No src parameter provided');
         } else if (typeof rive === 'undefined') {
             showError('Failed to load Rive runtime');
         } else {
@@ -59,46 +58,109 @@
                 'scaleDown': rive.Fit.ScaleDown
             };
 
-            try {
-                const config = {
-                    src: src,
-                    canvas: canvas,
-                    autoplay: true,
-                    fit: fitMap[fit] || rive.Fit.Contain,
-                    // Enable scripting/Rive listeners
-                    enableRiveAssetCDN: true,
-                    onLoad: function() {
-                        r.resizeDrawingSurfaceToCanvas();
-                        console.log('Rive loaded successfully');
-                        console.log('Artboards:', r.artboardNames);
-                        console.log('State machines:', r.stateMachineNames);
-                    },
-                    onLoadError: function(e) {
-                        showError('Failed to load Rive file: ' + src);
-                        console.error('Load error:', e);
-                    }
-                };
+            let riveInstance = null;
+            let stateMachineInputs = null;
 
-                if (artboard && artboard.length > 0) {
-                    config.artboard = artboard;
+            const config = {
+                src: src,
+                canvas: canvas,
+                autoplay: true,
+                fit: fitMap[fit] || rive.Fit.Contain,
+                enableRiveAssetCDN: true,
+                onLoad: function() {
+                    riveInstance.resizeDrawingSurfaceToCanvas();
+                    
+                    // Get state machine inputs for interaction
+                    const inputs = riveInstance.stateMachineInputs(
+                        stateMachine || riveInstance.stateMachineNames[0]
+                    );
+                    stateMachineInputs = inputs;
+                    
+                    console.log('✅ Rive loaded');
+                    console.log('Artboards:', riveInstance.artboardNames);
+                    console.log('State Machines:', riveInstance.stateMachineNames);
+                    console.log('Inputs:', inputs?.map(i => i.name));
+                },
+                onLoadError: function(e) {
+                    showError('Failed to load: ' + src);
+                    console.error('Load error:', e);
                 }
-                if (stateMachine && stateMachine.length > 0) {
-                    config.stateMachines = stateMachine;
-                }
+            };
 
-                const r = new rive.Rive(config);
-
-                window.addEventListener('resize', function() {
-                    r.resizeDrawingSurfaceToCanvas();
-                });
-
-                // Expose rive instance for debugging
-                window.riveInstance = r;
-                
-            } catch (e) {
-                showError('Error: ' + e.message);
-                console.error('Rive error:', e);
+            if (artboard && artboard.length > 0) {
+                config.artboard = artboard;
             }
+            
+            // Use specified state machine or let Rive pick the first one
+            if (stateMachine && stateMachine.length > 0) {
+                config.stateMachines = stateMachine;
+            } else {
+                // Auto-detect: will use first state machine
+                config.automaticallyHandleEvents = true;
+            }
+
+            riveInstance = new rive.Rive(config);
+
+            // Handle pointer events for interactivity
+            function getCanvasCoordinates(event) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top
+                };
+            }
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!riveInstance) return;
+                const coords = getCanvasCoordinates(e);
+                riveInstance.pointerMove(coords.x, coords.y);
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (!riveInstance) return;
+                const coords = getCanvasCoordinates(e);
+                riveInstance.pointerDown(coords.x, coords.y);
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                if (!riveInstance) return;
+                const coords = getCanvasCoordinates(e);
+                riveInstance.pointerUp(coords.x, coords.y);
+            });
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                if (!riveInstance) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const coords = getCanvasCoordinates(touch);
+                riveInstance.pointerDown(coords.x, coords.y);
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                if (!riveInstance) return;
+                e.preventDefault();
+                const touch = e.changedTouches[0];
+                const coords = getCanvasCoordinates(touch);
+                riveInstance.pointerUp(coords.x, coords.y);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!riveInstance) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const coords = getCanvasCoordinates(touch);
+                riveInstance.pointerMove(coords.x, coords.y);
+            });
+
+            // Handle resize
+            window.addEventListener('resize', function() {
+                if (riveInstance) {
+                    riveInstance.resizeDrawingSurfaceToCanvas();
+                }
+            });
+
+            window.riveInstance = riveInstance;
         }
     </script>
 </body>
