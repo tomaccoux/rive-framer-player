@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <title>Rive Player v2</title>
+    <title>Rive Player v3</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -31,7 +29,7 @@
     
     <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
     <script>
-        console.log('🚀 Rive Player v2 loaded');
+        console.log('🚀 Rive Player v3');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -72,38 +70,20 @@
                 stateMachines: stateMachine,
                 autoplay: true,
                 fit: fitMap[fit] || rive.Fit.Contain,
+                // Let Rive handle pointer events automatically
+                automaticallyHandleEvents: true,
                 onLoad: function() {
                     console.log('✅ Loaded successfully');
                     console.log('📦 State machines:', r.stateMachineNames);
                     r.resizeDrawingSurfaceToCanvas();
-                    r.play(stateMachine);
                 },
                 onLoadError: function(e) {
                     showError('Failed to load file');
                     console.error('❌ Error:', e);
+                },
+                onStateChange: function(event) {
+                    console.log('🔄 State change:', event);
                 }
-            });
-
-            // Pointer events for interactivity
-            function getCoords(e) {
-                const rect = canvas.getBoundingClientRect();
-                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-            }
-
-            canvas.addEventListener('pointerdown', (e) => {
-                const c = getCoords(e);
-                console.log('👆 Pointer down:', c);
-                r.pointerDown(c.x, c.y);
-            });
-
-            canvas.addEventListener('pointerup', (e) => {
-                const c = getCoords(e);
-                r.pointerUp(c.x, c.y);
-            });
-
-            canvas.addEventListener('pointermove', (e) => {
-                const c = getCoords(e);
-                r.pointerMove(c.x, c.y);
             });
 
             window.addEventListener('resize', () => r.resizeDrawingSurfaceToCanvas());
