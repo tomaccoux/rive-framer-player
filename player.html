@@ -31,7 +31,7 @@
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
         const artboard = params.get('artboard');
-        const stateMachine = params.get('stateMachine') || params.get('sm');
+        const stateMachine = params.get('stateMachine') || params.get('sm') || 'State Machine 1';
         const fit = params.get('fit') || 'contain';
         
         const canvas = document.getElementById('rive-canvas');
@@ -58,58 +58,32 @@
                 'scaleDown': rive.Fit.ScaleDown
             };
 
-            const config = {
+            console.log('🎬 Loading Rive with state machine:', stateMachine);
+
+            const r = new rive.Rive({
                 src: src,
                 canvas: canvas,
+                artboard: artboard || undefined,
+                stateMachines: stateMachine,
                 autoplay: true,
                 fit: fitMap[fit] || rive.Fit.Contain,
-                shouldDisableRiveListeners: false,
-                isTouchScrollEnabled: false,
                 onLoad: function() {
                     console.log('✅ Rive loaded');
+                    console.log('📦 State machines:', r.stateMachineNames);
+                    console.log('🎨 Artboards:', r.artboardNames);
                     r.resizeDrawingSurfaceToCanvas();
                     
-                    // Start manual render loop to keep scripting alive
-                    startRenderLoop();
+                    // Ensure state machine is playing
+                    r.play(stateMachine);
                 },
                 onLoadError: function(e) {
                     showError('Failed to load: ' + src);
-                    console.error('Load error:', e);
+                    console.error('❌ Load error:', e);
+                },
+                onStateChange: function(event) {
+                    console.log('🔄 State change:', event);
                 }
-            };
-
-            if (artboard && artboard.length > 0) {
-                config.artboard = artboard;
-            }
-            
-            if (stateMachine && stateMachine.length > 0) {
-                config.stateMachines = stateMachine;
-            }
-
-            const r = new rive.Rive(config);
-
-            // Manual render loop to keep scripting running
-            let lastTime = 0;
-            function renderLoop(time) {
-                if (!lastTime) lastTime = time;
-                const delta = (time - lastTime) / 1000;
-                lastTime = time;
-                
-                if (r && r.renderer) {
-                    r.advance(delta);
-                    r.draw();
-                }
-                
-                requestAnimationFrame(renderLoop);
-            }
-            
-            function startRenderLoop() {
-                // Stop the default animation loop
-                r.stop();
-                // Start our own continuous loop
-                requestAnimationFrame(renderLoop);
-                console.log('🔄 Manual render loop started');
-            }
+            });
 
             // Pointer events
             function getCoords(event) {
@@ -119,6 +93,7 @@
 
             canvas.addEventListener('mousedown', (e) => {
                 const c = getCoords(e);
+                console.log('👆 Click at:', c.x, c.y);
                 r.pointerDown(c.x, c.y);
             });
 
@@ -136,6 +111,7 @@
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 const c = getCoords(e.touches[0]);
+                console.log('👆 Touch at:', c.x, c.y);
                 r.pointerDown(c.x, c.y);
             }, { passive: false });
 
