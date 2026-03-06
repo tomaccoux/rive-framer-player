@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rive Player</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        canvas { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="rive-canvas"></canvas>
+    
+    <script src="https://unpkg.com/@rive-app/canvas@2.10.4"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const src = params.get('src');
+        const artboard = params.get('artboard');
+        const stateMachine = params.get('stateMachine');
+        const fit = params.get('fit') || 'contain';
+        
+        const fitMap = {
+            'contain': rive.Fit.Contain,
+            'cover': rive.Fit.Cover,
+            'fill': rive.Fit.Fill,
+            'fitWidth': rive.Fit.FitWidth,
+            'fitHeight': rive.Fit.FitHeight,
+            'none': rive.Fit.None,
+            'scaleDown': rive.Fit.ScaleDown
+        };
+
+        if (src) {
+            const r = new rive.Rive({
+                src: src,
+                canvas: document.getElementById('rive-canvas'),
+                artboard: artboard || undefined,
+                stateMachines: stateMachine || undefined,
+                autoplay: true,
+                fit: fitMap[fit] || rive.Fit.Contain,
+                onLoad: () => {
+                    r.resizeDrawingSurfaceToCanvas();
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                r.resizeDrawingSurfaceToCanvas();
+            });
+        }
+    </script>
+</body>
+</html>
