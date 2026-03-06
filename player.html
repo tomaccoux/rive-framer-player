@@ -26,7 +26,8 @@
     <canvas id="rive-canvas"></canvas>
     <div id="error" class="error" style="display: none;"></div>
     
-    <script src="https://unpkg.com/@rive-app/canvas@2.10.4"></script>
+    <!-- Use latest Rive runtime with scripting support -->
+    <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -64,11 +65,17 @@
                     canvas: canvas,
                     autoplay: true,
                     fit: fitMap[fit] || rive.Fit.Contain,
+                    // Enable scripting/Rive listeners
+                    enableRiveAssetCDN: true,
                     onLoad: function() {
                         r.resizeDrawingSurfaceToCanvas();
+                        console.log('Rive loaded successfully');
+                        console.log('Artboards:', r.artboardNames);
+                        console.log('State machines:', r.stateMachineNames);
                     },
                     onLoadError: function(e) {
                         showError('Failed to load Rive file: ' + src);
+                        console.error('Load error:', e);
                     }
                 };
 
@@ -84,8 +91,13 @@
                 window.addEventListener('resize', function() {
                     r.resizeDrawingSurfaceToCanvas();
                 });
+
+                // Expose rive instance for debugging
+                window.riveInstance = r;
+                
             } catch (e) {
                 showError('Error: ' + e.message);
+                console.error('Rive error:', e);
             }
         }
     </script>
