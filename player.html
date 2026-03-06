@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v3</title>
+    <title>Rive Player v4</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -27,9 +27,10 @@
     <canvas id="rive-canvas"></canvas>
     <div id="error" class="error" style="display: none;"></div>
     
-    <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
+    <!-- Use WebGL version for feathering support -->
+    <script src="https://unpkg.com/@rive-app/webgl2@latest"></script>
     <script>
-        console.log('🚀 Rive Player v3');
+        console.log('🚀 Rive Player v4 (WebGL2)');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -70,10 +71,9 @@
                 stateMachines: stateMachine,
                 autoplay: true,
                 fit: fitMap[fit] || rive.Fit.Contain,
-                // Let Rive handle pointer events automatically
                 automaticallyHandleEvents: true,
                 onLoad: function() {
-                    console.log('✅ Loaded successfully');
+                    console.log('✅ Loaded successfully (WebGL2)');
                     console.log('📦 State machines:', r.stateMachineNames);
                     r.resizeDrawingSurfaceToCanvas();
                 },
