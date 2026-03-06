@@ -58,32 +58,37 @@
                 'scaleDown': rive.Fit.ScaleDown
             };
 
-            let riveInstance = null;
-            let stateMachineInputs = null;
-
             const config = {
                 src: src,
                 canvas: canvas,
                 autoplay: true,
                 fit: fitMap[fit] || rive.Fit.Contain,
-                enableRiveAssetCDN: true,
+                useOffscreenRenderer: false,
                 onLoad: function() {
-                    riveInstance.resizeDrawingSurfaceToCanvas();
-                    
-                    // Get state machine inputs for interaction
-                    const inputs = riveInstance.stateMachineInputs(
-                        stateMachine || riveInstance.stateMachineNames[0]
-                    );
-                    stateMachineInputs = inputs;
-                    
                     console.log('✅ Rive loaded');
-                    console.log('Artboards:', riveInstance.artboardNames);
-                    console.log('State Machines:', riveInstance.stateMachineNames);
-                    console.log('Inputs:', inputs?.map(i => i.name));
+                    r.resizeDrawingSurfaceToCanvas();
                 },
                 onLoadError: function(e) {
                     showError('Failed to load: ' + src);
                     console.error('Load error:', e);
+                },
+                onPlay: function() {
+                    console.log('▶️ Playing');
+                },
+                onPause: function() {
+                    console.log('⏸️ Paused');
+                },
+                onStop: function() {
+                    console.log('⏹️ Stopped');
+                    // Auto-restart if stopped unexpectedly
+                    setTimeout(() => {
+                        if (r && !r.isPlaying) {
+                            r.play();
+                        }
+                    }, 100);
+                },
+                onStateChange: function(event) {
+                    console.log('State change:', event.data);
                 }
             };
 
@@ -91,76 +96,57 @@
                 config.artboard = artboard;
             }
             
-            // Use specified state machine or let Rive pick the first one
             if (stateMachine && stateMachine.length > 0) {
                 config.stateMachines = stateMachine;
-            } else {
-                // Auto-detect: will use first state machine
-                config.automaticallyHandleEvents = true;
             }
 
-            riveInstance = new rive.Rive(config);
+            const r = new rive.Rive(config);
 
-            // Handle pointer events for interactivity
-            function getCanvasCoordinates(event) {
+            // Pointer events
+            function getCoords(event) {
                 const rect = canvas.getBoundingClientRect();
-                return {
-                    x: event.clientX - rect.left,
-                    y: event.clientY - rect.top
-                };
+                return { x: event.clientX - rect.left, y: event.clientY - rect.top };
             }
-
-            canvas.addEventListener('mousemove', (e) => {
-                if (!riveInstance) return;
-                const coords = getCanvasCoordinates(e);
-                riveInstance.pointerMove(coords.x, coords.y);
-            });
 
             canvas.addEventListener('mousedown', (e) => {
-                if (!riveInstance) return;
-                const coords = getCanvasCoordinates(e);
-                riveInstance.pointerDown(coords.x, coords.y);
+                const c = getCoords(e);
+                r.pointerDown(c.x, c.y);
             });
 
             canvas.addEventListener('mouseup', (e) => {
-                if (!riveInstance) return;
-                const coords = getCanvasCoordinates(e);
-                riveInstance.pointerUp(coords.x, coords.y);
+                const c = getCoords(e);
+                r.pointerUp(c.x, c.y);
             });
 
-            // Touch events for mobile
-            canvas.addEventListener('touchstart', (e) => {
-                if (!riveInstance) return;
-                e.preventDefault();
-                const touch = e.touches[0];
-                const coords = getCanvasCoordinates(touch);
-                riveInstance.pointerDown(coords.x, coords.y);
+            canvas.addEventListener('mousemove', (e) => {
+                const c = getCoords(e);
+                r.pointerMove(c.x, c.y);
             });
+
+            // Touch
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const c = getCoords(e.touches[0]);
+                r.pointerDown(c.x, c.y);
+            }, { passive: false });
 
             canvas.addEventListener('touchend', (e) => {
-                if (!riveInstance) return;
                 e.preventDefault();
-                const touch = e.changedTouches[0];
-                const coords = getCanvasCoordinates(touch);
-                riveInstance.pointerUp(coords.x, coords.y);
-            });
+                const c = getCoords(e.changedTouches[0]);
+                r.pointerUp(c.x, c.y);
+            }, { passive: false });
 
             canvas.addEventListener('touchmove', (e) => {
-                if (!riveInstance) return;
                 e.preventDefault();
-                const touch = e.touches[0];
-                const coords = getCanvasCoordinates(touch);
-                riveInstance.pointerMove(coords.x, coords.y);
-            });
+                const c = getCoords(e.touches[0]);
+                r.pointerMove(c.x, c.y);
+            }, { passive: false });
 
-            // Handle resize
-            window.addEventListener('resize', function() {
-                if (riveInstance) {
-                    riveInstance.resizeDrawingSurfaceToCanvas();
-                }
-            });
+            // Resize
+            window.addEventListener('resize', () => r.resizeDrawingSurfaceToCanvas());
 
-            window.riveInstance = riveInstance;
+            // Debug
+            window.r = r;
         }
     </script>
 </body>
