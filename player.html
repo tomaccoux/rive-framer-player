@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v15</title>
+    <title>Rive Player v16</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -71,12 +71,16 @@
             margin-bottom: 0;
         }
         .instructions .section-title {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            color: #5746af;
+            margin-bottom: 6px;
+        }
+        .instructions .step-desc {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 10px;
+            line-height: 1.4;
         }
         .instructions code {
             font-family: 'SF Mono', Menlo, Monaco, monospace;
@@ -119,48 +123,56 @@
     <div id="error" class="error" style="display: none;"></div>
     <div id="instructions" class="instructions" style="display: none;">
         <h1>Rive Framer Player</h1>
-        <p class="subtitle">Add a <strong>src</strong> parameter to load your Rive file</p>
+        <p class="subtitle">Embed Rive animations with scripting support</p>
         
         <div class="box">
             <div class="section">
-                <div class="section-title">Example URL</div>
-                <code>player.html?src=https://your-url.com/file.riv</code>
+                <div class="section-title">Step 1: Host your Rive file</div>
+                <p class="step-desc">Upload your <strong>.riv</strong> file to GitHub, a CDN, or any public URL</p>
             </div>
             
             <div class="section">
-                <div class="section-title">Available Parameters</div>
-                <div class="param">
-                    <span class="param-name">src</span>
-                    <span class="param-desc">Rive file URL (required)</span>
-                </div>
+                <div class="section-title">Step 2: Add the src parameter</div>
+                <p class="step-desc">Add <strong>?src=</strong> followed by your Rive file URL:</p>
+                <code>player.html?src=https://your-url.com/animation.riv</code>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Step 3: Customize (optional)</div>
+                <p class="step-desc">Add more parameters to control the display:</p>
                 <div class="param">
                     <span class="param-name">fit</span>
-                    <span class="param-desc">contain, cover, fill, fitWidth, fitHeight, none</span>
+                    <span class="param-desc">contain, cover, fill, fitWidth, fitHeight</span>
                 </div>
                 <div class="param">
                     <span class="param-name">align</span>
-                    <span class="param-desc">center, topLeft, topRight, bottomLeft, etc.</span>
+                    <span class="param-desc">center, topLeft, topRight, bottomLeft...</span>
                 </div>
                 <div class="param">
                     <span class="param-name">sm</span>
-                    <span class="param-desc">State machine name</span>
+                    <span class="param-desc">State machine name (default: "State Machine 1")</span>
                 </div>
                 <div class="param">
                     <span class="param-name">artboard</span>
-                    <span class="param-desc">Artboard name</span>
+                    <span class="param-desc">Artboard name (default: first artboard)</span>
                 </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Full Example</div>
+                <code>player.html?src=https://example.com/file.riv&fit=cover&sm=State Machine 1</code>
             </div>
         </div>
         
         <p class="footer">
-            Created by <a href="https://rivemasterclass.com" target="_blank">Tom Acco</a> · 
-            <a href="https://github.com/tomaccoux/rive-framer-player" target="_blank">GitHub</a>
+            <a href="https://github.com/tomaccoux/rive-framer-player" target="_blank">View Documentation on GitHub</a><br>
+            Created by <a href="https://rivemasterclass.com" target="_blank">Tom Acco</a>
         </p>
     </div>
     
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v15 (WebGL2)');
+        console.log('🚀 Rive Player v16 (WebGL2)');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
