@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v14</title>
+    <title>Rive Player v15</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -31,17 +31,136 @@
             color: #666;
             font-size: 14px;
         }
+        .instructions {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: #333;
+            padding: 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+        }
+        .instructions h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        .instructions .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .instructions .box {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            text-align: left;
+        }
+        .instructions .section {
+            margin-bottom: 20px;
+        }
+        .instructions .section:last-child {
+            margin-bottom: 0;
+        }
+        .instructions .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .instructions code {
+            font-family: 'SF Mono', Menlo, Monaco, monospace;
+            font-size: 12px;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: block;
+            word-break: break-all;
+            color: #333;
+        }
+        .instructions .param {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .instructions .param-name {
+            font-weight: 600;
+            color: #5746af;
+            min-width: 80px;
+        }
+        .instructions .param-desc {
+            color: #555;
+        }
+        .instructions .footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #999;
+        }
+        .instructions .footer a {
+            color: #5746af;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
     <canvas id="rive-canvas" style="display: none;"></canvas>
-    <div id="loading" class="loading">Loading...</div>
+    <div id="loading" class="loading" style="display: none;">Loading...</div>
     <div id="error" class="error" style="display: none;"></div>
+    <div id="instructions" class="instructions" style="display: none;">
+        <h1>Rive Framer Player</h1>
+        <p class="subtitle">Add a <strong>src</strong> parameter to load your Rive file</p>
+        
+        <div class="box">
+            <div class="section">
+                <div class="section-title">Example URL</div>
+                <code>player.html?src=https://your-url.com/file.riv</code>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Available Parameters</div>
+                <div class="param">
+                    <span class="param-name">src</span>
+                    <span class="param-desc">Rive file URL (required)</span>
+                </div>
+                <div class="param">
+                    <span class="param-name">fit</span>
+                    <span class="param-desc">contain, cover, fill, fitWidth, fitHeight, none</span>
+                </div>
+                <div class="param">
+                    <span class="param-name">align</span>
+                    <span class="param-desc">center, topLeft, topRight, bottomLeft, etc.</span>
+                </div>
+                <div class="param">
+                    <span class="param-name">sm</span>
+                    <span class="param-desc">State machine name</span>
+                </div>
+                <div class="param">
+                    <span class="param-name">artboard</span>
+                    <span class="param-desc">Artboard name</span>
+                </div>
+            </div>
+        </div>
+        
+        <p class="footer">
+            Created by <a href="https://rivemasterclass.com" target="_blank">Tom Acco</a> · 
+            <a href="https://github.com/tomaccoux/rive-framer-player" target="_blank">GitHub</a>
+        </p>
+    </div>
     
-    <!-- Use WebGL2 UMD build for feathering support -->
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v14 (WebGL2)');
+        console.log('🚀 Rive Player v15 (WebGL2)');
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
@@ -53,10 +172,12 @@
         const canvas = document.getElementById('rive-canvas');
         const errorDiv = document.getElementById('error');
         const loadingDiv = document.getElementById('loading');
+        const instructionsDiv = document.getElementById('instructions');
 
         function showError(msg) {
             loadingDiv.style.display = 'none';
             canvas.style.display = 'none';
+            instructionsDiv.style.display = 'none';
             errorDiv.style.display = 'flex';
             errorDiv.textContent = msg;
             console.error('❌', msg);
@@ -65,14 +186,31 @@
         function showCanvas() {
             loadingDiv.style.display = 'none';
             errorDiv.style.display = 'none';
+            instructionsDiv.style.display = 'none';
             canvas.style.display = 'block';
+        }
+
+        function showInstructions() {
+            loadingDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            canvas.style.display = 'none';
+            instructionsDiv.style.display = 'flex';
+        }
+
+        function showLoading() {
+            instructionsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            canvas.style.display = 'none';
+            loadingDiv.style.display = 'flex';
         }
 
         async function main() {
             if (!src) {
-                showError('No src parameter provided');
+                showInstructions();
                 return;
             }
+            
+            showLoading();
             
             if (typeof rive === 'undefined') {
                 showError('Failed to load Rive runtime');
@@ -80,7 +218,6 @@
             }
 
             try {
-                // Fit mapping
                 const fitMap = {
                     'contain': rive.Fit.Contain,
                     'cover': rive.Fit.Cover,
@@ -91,7 +228,6 @@
                     'scaledown': rive.Fit.ScaleDown
                 };
                 
-                // Alignment mapping
                 const alignMap = {
                     'center': rive.Alignment.Center,
                     'topleft': rive.Alignment.TopLeft,
@@ -107,17 +243,13 @@
                 const selectedFit = fitMap[fitParam.toLowerCase()] || rive.Fit.Contain;
                 const selectedAlign = alignMap[alignParam.toLowerCase()] || rive.Alignment.Center;
                 
-                console.log('📐 Fit param:', fitParam, '| Fit value:', selectedFit);
-                console.log('📐 Align param:', alignParam, '| Align value:', selectedAlign);
-                console.log('📐 Available fits:', rive.Fit);
+                console.log('📐 Fit:', fitParam, '| Align:', alignParam);
                 
-                // Create layout
                 const layout = new rive.Layout({
                     fit: selectedFit,
                     alignment: selectedAlign
                 });
 
-                // Config
                 const config = {
                     src: src,
                     canvas: canvas,
@@ -133,25 +265,24 @@
                         r.resizeDrawingSurfaceToCanvas();
                     },
                     onLoadError: (e) => {
-                        showError('Failed to load: ' + (e.message || e));
+                        const errorMsg = e && e.message ? e.message : 'Could not load file. Check the URL.';
+                        showError('Failed to load: ' + errorMsg);
                     }
                 };
                 
-                // Add artboard if specified
                 if (artboardName) {
                     config.artboard = artboardName;
                 }
 
                 const r = new rive.Rive(config);
 
-                // Handle resize
                 window.addEventListener('resize', () => {
                     r.resizeDrawingSurfaceToCanvas();
                 });
                 
             } catch (e) {
                 console.error('❌ Error:', e);
-                showError('Error: ' + e.message);
+                showError('Error: ' + (e.message || 'Unknown error'));
             }
         }
 
