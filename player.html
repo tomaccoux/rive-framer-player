@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v16</title>
+    <title>Rive Player v17</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -172,10 +172,13 @@
     
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v16 (WebGL2)');
+        console.log('🚀 Rive Player v17 (WebGL2)');
+        console.log('🔍 Full URL:', window.location.href);
+        console.log('🔍 Search:', window.location.search);
         
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
+        console.log('🔍 src param:', src);
         const artboardName = params.get('artboard') || '';
         const stateMachineName = params.get('stateMachine') || params.get('sm') || 'State Machine 1';
         const fitParam = params.get('fit') || 'contain';
