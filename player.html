@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v20</title>
+    <title>Rive Player v21</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -172,7 +172,7 @@
     
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v20 (WebGL2 + Data Binding)');
+        console.log('🚀 Rive Player v21 (WebGL2 + Data Binding)');
         console.log('🔍 Full URL:', window.location.href);
         console.log('🔍 Search:', window.location.search);
         
@@ -280,16 +280,40 @@
                         
                         // Initialize View Model for data binding
                         try {
-                            const vm = r.viewModelByIndex(0);
+                            // Try different methods to get the view model
+                            let vm = null;
+                            
+                            if (typeof r.defaultViewModel === 'function') {
+                                vm = r.defaultViewModel();
+                                console.log('📊 Got default ViewModel');
+                            } else if (typeof r.viewModelByIndex === 'function') {
+                                vm = r.viewModelByIndex(0);
+                                console.log('📊 Got ViewModel by index');
+                            }
+                            
                             if (vm) {
-                                const vmInstance = vm.defaultInstance();
-                                if (vmInstance) {
-                                    r.setViewModelInstance(vmInstance);
-                                    console.log('📊 View Model initialized');
+                                console.log('📊 ViewModel:', vm);
+                                console.log('📊 ViewModel methods:', Object.keys(vm));
+                                
+                                // Create instance and bind
+                                if (typeof vm.createDefaultInstance === 'function') {
+                                    const instance = vm.createDefaultInstance();
+                                    if (instance) {
+                                        r.setDataContextFromInstance(instance);
+                                        console.log('📊 Data context set from instance');
+                                    }
+                                } else if (typeof vm.defaultInstance === 'function') {
+                                    const instance = vm.defaultInstance();
+                                    if (instance && typeof r.setViewModelInstance === 'function') {
+                                        r.setViewModelInstance(instance);
+                                        console.log('📊 View Model instance set');
+                                    }
                                 }
+                            } else {
+                                console.log('📊 No ViewModel available');
                             }
                         } catch (vmError) {
-                            console.log('📊 No View Model found (optional)');
+                            console.log('📊 View Model error:', vmError);
                         }
                     },
                     onLoadError: (e) => {
