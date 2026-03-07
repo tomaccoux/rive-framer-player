@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v23</title>
+    <title>Rive Player v24</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
@@ -172,7 +172,7 @@
     
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v23 (WebGL2 + Data Binding)');
+        console.log('🚀 Rive Player v24 (WebGL2 + Data Binding)');
         console.log('🔍 Full URL:', window.location.href);
         console.log('🔍 Search:', window.location.search);
         
@@ -261,11 +261,13 @@
                 console.log('📐 Fit:', fitParam, '| Align:', alignParam);
                 
                 // Set initial canvas size with DPR for crisp rendering
-                const dpr = window.devicePixelRatio || 1;
+                // Use 2x DPR minimum for better feather quality
+                const baseDpr = window.devicePixelRatio || 1;
+                const dpr = Math.max(baseDpr, 2);
                 const rect = canvas.getBoundingClientRect();
                 canvas.width = rect.width * dpr;
                 canvas.height = rect.height * dpr;
-                console.log('📐 Canvas DPR:', dpr, '| Size:', canvas.width, 'x', canvas.height);
+                console.log('📐 Canvas DPR:', dpr, '(base:', baseDpr, ') | Size:', canvas.width, 'x', canvas.height);
                 
                 const layout = new rive.Layout({
                     fit: selectedFit,
@@ -357,7 +359,8 @@
 
                 // Handle resize with proper DPR
                 function handleResize() {
-                    const dpr = window.devicePixelRatio || 1;
+                    const baseDpr = window.devicePixelRatio || 1;
+                    const dpr = Math.max(baseDpr, 2);
                     const rect = canvas.getBoundingClientRect();
                     canvas.width = rect.width * dpr;
                     canvas.height = rect.height * dpr;
