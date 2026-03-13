@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Rive Player v24</title>
+    <title>Rive Player v25</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: transparent; }
-        canvas { width: 100%; height: 100%; display: block; cursor: pointer; }
-        .error { 
-            width: 100%; 
-            height: 100%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+        canvas { width: 100%; height: 100%; display: block; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; }
+        canvas.visible { opacity: 1; }
+        .error {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: system-ui, sans-serif;
             color: #c00;
             font-size: 14px;
@@ -118,25 +119,26 @@
     </style>
 </head>
 <body>
-    <canvas id="rive-canvas" style="display: none;"></canvas>
+    <!-- Canvas is always in the DOM (display:block) so it has real dimensions -->
+    <canvas id="rive-canvas"></canvas>
     <div id="loading" class="loading" style="display: none;">Loading...</div>
     <div id="error" class="error" style="display: none;"></div>
     <div id="instructions" class="instructions" style="display: none;">
         <h1>Rive Framer Player</h1>
         <p class="subtitle">Embed Rive animations with scripting support</p>
-        
+
         <div class="box">
             <div class="section">
                 <div class="section-title">Step 1: Host your Rive file</div>
                 <p class="step-desc">Upload your <strong>.riv</strong> file to GitHub, a CDN, or any public URL</p>
             </div>
-            
+
             <div class="section">
                 <div class="section-title">Step 2: Add the src parameter</div>
                 <p class="step-desc">Add <strong>?src=</strong> followed by your Rive file URL:</p>
                 <code>player.html?src=https://your-url.com/animation.riv</code>
             </div>
-            
+
             <div class="section">
                 <div class="section-title">Step 3: Customize (optional)</div>
                 <p class="step-desc">Add more parameters to control the display:</p>
@@ -157,25 +159,25 @@
                     <span class="param-desc">Artboard name (default: first artboard)</span>
                 </div>
             </div>
-            
+
             <div class="section">
                 <div class="section-title">Full Example</div>
                 <code>player.html?src=https://example.com/file.riv&fit=cover&sm=State Machine 1</code>
             </div>
         </div>
-        
+
         <p class="footer">
             <a href="https://github.com/tomaccoux/rive-framer-player" target="_blank">View Documentation on GitHub</a><br>
             Created by <a href="https://rivemasterclass.com" target="_blank">Tom Acco</a>
         </p>
     </div>
-    
+
     <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
     <script>
-        console.log('🚀 Rive Player v24 (WebGL2 + Data Binding)');
+        console.log('🚀 Rive Player v25 (WebGL2 + Data Binding + Refresh Fix)');
         console.log('🔍 Full URL:', window.location.href);
         console.log('🔍 Search:', window.location.search);
-        
+
         const params = new URLSearchParams(window.location.search);
         const src = params.get('src');
         console.log('🔍 src param:', src);
@@ -183,7 +185,7 @@
         const stateMachineName = params.get('stateMachine') || params.get('sm') || 'State Machine 1';
         const fitParam = params.get('fit') || 'contain';
         const alignParam = params.get('align') || 'center';
-        
+
         const canvas = document.getElementById('rive-canvas');
         const errorDiv = document.getElementById('error');
         const loadingDiv = document.getElementById('loading');
@@ -203,6 +205,7 @@
             errorDiv.style.display = 'none';
             instructionsDiv.style.display = 'none';
             canvas.style.display = 'block';
+            canvas.classList.add('visible');
         }
 
         function showInstructions() {
@@ -215,8 +218,53 @@
         function showLoading() {
             instructionsDiv.style.display = 'none';
             errorDiv.style.display = 'none';
-            canvas.style.display = 'none';
+            // Keep canvas in DOM (display:block) but invisible so it has dimensions
+            canvas.style.display = 'block';
+            canvas.classList.remove('visible');
             loadingDiv.style.display = 'flex';
+            loadingDiv.style.position = 'absolute';
+            loadingDiv.style.top = '0';
+            loadingDiv.style.left = '0';
+        }
+
+        // Helper: wait until canvas has non-zero dimensions
+        function waitForCanvasSize() {
+            return new Promise((resolve) => {
+                const rect = canvas.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    console.log('📐 Canvas ready:', rect.width, 'x', rect.height);
+                    resolve();
+                    return;
+                }
+                console.log('⏳ Canvas has zero dimensions, waiting...');
+                const ro = new ResizeObserver((entries) => {
+                    for (const entry of entries) {
+                        const cr = entry.contentRect;
+                        if (cr.width > 0 && cr.height > 0) {
+                            console.log('📐 Canvas now has size:', cr.width, 'x', cr.height);
+                            ro.disconnect();
+                            resolve();
+                            return;
+                        }
+                    }
+                });
+                ro.observe(canvas);
+                // Safety timeout - resolve after 5s even if still zero
+                setTimeout(() => {
+                    ro.disconnect();
+                    console.log('⚠️ Canvas size timeout, proceeding anyway');
+                    resolve();
+                }, 5000);
+            });
+        }
+
+        function sizeCanvas() {
+            const baseDpr = window.devicePixelRatio || 1;
+            const dpr = Math.max(baseDpr, 2);
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            console.log('📐 Canvas DPR:', dpr, '(base:', baseDpr, ') | Size:', canvas.width, 'x', canvas.height);
         }
 
         async function main() {
@@ -224,9 +272,9 @@
                 showInstructions();
                 return;
             }
-            
+
             showLoading();
-            
+
             if (typeof rive === 'undefined') {
                 showError('Failed to load Rive runtime');
                 return;
@@ -242,7 +290,7 @@
                     'none': rive.Fit.None,
                     'scaledown': rive.Fit.ScaleDown
                 };
-                
+
                 const alignMap = {
                     'center': rive.Alignment.Center,
                     'topleft': rive.Alignment.TopLeft,
@@ -254,21 +302,16 @@
                     'bottomcenter': rive.Alignment.BottomCenter,
                     'bottomright': rive.Alignment.BottomRight
                 };
-                
+
                 const selectedFit = fitMap[fitParam.toLowerCase()] || rive.Fit.Contain;
                 const selectedAlign = alignMap[alignParam.toLowerCase()] || rive.Alignment.Center;
-                
+
                 console.log('📐 Fit:', fitParam, '| Align:', alignParam);
-                
-                // Set initial canvas size with DPR for crisp rendering
-                // Use 2x DPR minimum for better feather quality
-                const baseDpr = window.devicePixelRatio || 1;
-                const dpr = Math.max(baseDpr, 2);
-                const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width * dpr;
-                canvas.height = rect.height * dpr;
-                console.log('📐 Canvas DPR:', dpr, '(base:', baseDpr, ') | Size:', canvas.width, 'x', canvas.height);
-                
+
+                // Wait for canvas to have real dimensions before sizing
+                await waitForCanvasSize();
+                sizeCanvas();
+
                 const layout = new rive.Layout({
                     fit: selectedFit,
                     alignment: selectedAlign
@@ -286,32 +329,35 @@
                         console.log('✅ Loaded');
                         showCanvas();
                         r.resizeDrawingSurfaceToCanvas();
-                        
+
+                        // Notify parent iframe that we loaded successfully
+                        try {
+                            window.parent.postMessage({ type: 'rive-loaded' }, '*');
+                        } catch (e) {}
+
                         // Initialize View Model for data binding
                         try {
                             let vm = null;
-                            
+
                             if (typeof r.defaultViewModel === 'function') {
                                 vm = r.defaultViewModel();
                                 console.log('📊 Got default ViewModel');
                             }
-                            
+
                             if (vm && typeof vm.defaultInstance === 'function') {
                                 const instance = vm.defaultInstance();
                                 console.log('📊 Got instance:', instance);
-                                
+
                                 if (instance) {
-                                    // Log available methods on Rive instance for binding
                                     const riveMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(r));
-                                    const bindMethods = riveMethods.filter(m => 
-                                        m.toLowerCase().includes('viewmodel') || 
+                                    const bindMethods = riveMethods.filter(m =>
+                                        m.toLowerCase().includes('viewmodel') ||
                                         m.toLowerCase().includes('data') ||
                                         m.toLowerCase().includes('instance') ||
                                         m.toLowerCase().includes('bind')
                                     );
                                     console.log('📊 Rive binding methods:', bindMethods);
-                                    
-                                    // Try different binding methods
+
                                     if (typeof r.setViewModelInstance === 'function') {
                                         r.setViewModelInstance(instance);
                                         console.log('📊 Bound via setViewModelInstance');
@@ -323,7 +369,6 @@
                                         console.log('📊 Bound via setDataContext');
                                     } else {
                                         console.log('📊 No binding method found, trying direct assignment');
-                                        // The instance might auto-bind when created
                                     }
                                 }
                             } else {
@@ -350,7 +395,7 @@
                         showError('Failed to load: ' + errorMsg);
                     }
                 };
-                
+
                 if (artboardName) {
                     config.artboard = artboardName;
                 }
@@ -359,17 +404,12 @@
 
                 // Handle resize with proper DPR
                 function handleResize() {
-                    const baseDpr = window.devicePixelRatio || 1;
-                    const dpr = Math.max(baseDpr, 2);
-                    const rect = canvas.getBoundingClientRect();
-                    canvas.width = rect.width * dpr;
-                    canvas.height = rect.height * dpr;
+                    sizeCanvas();
                     r.resizeDrawingSurfaceToCanvas();
                 }
-                
-                handleResize();
+
                 window.addEventListener('resize', handleResize);
-                
+
             } catch (e) {
                 console.error('❌ Error:', e);
                 showError('Error: ' + (e.message || 'Unknown error'));
