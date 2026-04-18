@@ -4,93 +4,118 @@
 <meta charset="UTF-8">
 <title>Rive File Test</title>
 <style>
-  body { margin: 0; font-family: system-ui; background: #0f0f16; color: #fff; padding: 20px; }
-  h1 { font-size: 18px; margin-bottom: 12px; }
-  .row { margin-bottom: 10px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #aaa; }
-  select, button, input { background: #1f1f2e; color: #fff; border: 1px solid #333; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: inherit; }
-  button { cursor: pointer; background: #4a3aff; border: none; }
-  button.secondary { background: #333; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui; background: #0f0f16; color: #fff; height: 100vh; overflow: hidden; }
+  h1 { font-size: 16px; margin: 0 0 16px 0; font-weight: 600; color: #fff; }
+  .layout { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
+  .sidebar { padding: 20px; border-right: 1px solid #222; overflow-y: auto; background: #14141c; }
+  .main { padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  select, input { width: 100%; background: #1f1f2e; color: #fff; border: 1px solid #333; padding: 8px 10px; border-radius: 6px; font-size: 13px; font-family: inherit; }
+  input[type="text"] { font-family: monospace; font-size: 11px; }
+  input[type="file"] { padding: 6px; font-family: inherit; font-size: 12px; }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  button { cursor: pointer; background: #4a3aff; color: #fff; border: none; padding: 10px 12px; border-radius: 6px; font-size: 13px; font-family: inherit; }
+  button.secondary { background: #2a2a38; }
   button:hover { opacity: 0.9; }
-  input[type="text"] { min-width: 280px; font-family: monospace; font-size: 12px; }
-  input[type="file"] { padding: 6px; }
-  #stage { width: 600px; height: 600px; background: #1a1a24; border-radius: 12px; margin: 16px 0; }
-  canvas { width: 100%; height: 100%; display: block; border-radius: 12px; }
-  .log { background: #1f1f2e; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+  button.full { grid-column: 1 / -1; }
+  #stage { flex: 1; background: #1a1a24; border-radius: 12px; min-height: 300px; overflow: hidden; position: relative; }
+  canvas { width: 100%; height: 100%; display: block; }
+  .log { height: 240px; background: #14141c; border: 1px solid #222; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 11px; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
   .log .ok { color: #4ade80; }
   .log .err { color: #ef4444; }
   .log .info { color: #60a5fa; }
   .log .meta { color: #888; }
-  .hint { font-size: 12px; color: #888; margin-left: 4px; }
+  .hint { font-size: 11px; color: #888; margin-top: 4px; }
+  .divider { height: 1px; background: #222; margin: 18px 0; }
+  .section-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; font-weight: 600; }
 </style>
 </head>
 <body>
-<h1>Rive File Test</h1>
+<div class="layout">
 
-<div class="row">
-  <label>Source:
-    <select id="source" onchange="onSourceChange()">
-      <option value="url">URL / file in repo</option>
-      <option value="local">Local file (upload)</option>
-    </select>
-  </label>
+  <aside class="sidebar">
+    <h1>Rive File Test</h1>
+
+    <div class="section-title">Source</div>
+    <div class="field">
+      <label>Type</label>
+      <select id="source" onchange="onSourceChange()">
+        <option value="url">URL / file in repo</option>
+        <option value="local">Local file (upload)</option>
+      </select>
+    </div>
+
+    <div id="urlRow">
+      <div class="field">
+        <label>Preset</label>
+        <select id="preset" onchange="onPresetChange()">
+          <option value="">-- pick a file --</option>
+          <option value="Hero_Wbis_landing_page.riv">Hero_Wbis_landing_page.riv</option>
+          <option value="Scripting Hero.riv">Scripting Hero.riv</option>
+          <option value="coming_soon.riv">coming_soon.riv</option>
+          <option value="DayNight.riv">DayNight.riv</option>
+          <option value="Landing_lightning_scripts.riv">Landing_lightning_scripts.riv</option>
+          <option value="landing_page.riv">landing_page.riv</option>
+          <option value="lightning_scripts.riv">lightning_scripts.riv</option>
+          <option value="lightning_test.riv">lightning_test.riv</option>
+          <option value="path_effect_script.riv">path_effect_script.riv</option>
+          <option value="product_ready.riv">product_ready.riv</option>
+          <option value="responsive_design.riv">responsive_design.riv</option>
+          <option value="responsive_designnew.riv">responsive_designnew.riv</option>
+          <option value="ResponsiveIpad.riv">ResponsiveIpad.riv</option>
+          <option value="Responsive.riv">Responsive.riv</option>
+          <option value="Rigging.riv">Rigging.riv</option>
+          <option value="RivSteps.riv">RivSteps.riv</option>
+          <option value="snow_effect.riv">snow_effect.riv</option>
+          <option value="beach_ball.riv">beach_ball.riv</option>
+          <option value="converter_scripts.riv">converter_scripts.riv</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>URL</label>
+        <input type="text" id="url" value="https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/Hero_Wbis_landing_page.riv">
+      </div>
+    </div>
+
+    <div id="localRow" style="display: none;">
+      <div class="field">
+        <label>Upload .riv</label>
+        <input type="file" id="localFile" accept=".riv" onchange="onLocalFileChange()">
+        <div class="hint" id="localFileInfo"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">Playback</div>
+    <div class="field">
+      <label>Artboard</label>
+      <input type="text" id="artboard" value="SpaceSquare" placeholder="(default)" list="artboardList">
+      <datalist id="artboardList"></datalist>
+      <div class="hint" id="artboardHint">Type or pick from list after first load</div>
+    </div>
+    <div class="field">
+      <label>State Machine</label>
+      <input type="text" id="stateMachine" value="State Machine 1" placeholder="(default)" list="stateMachineList">
+      <datalist id="stateMachineList"></datalist>
+    </div>
+
+    <div class="buttons">
+      <button class="full" onclick="loadRive(false)">Reload</button>
+      <button class="secondary" onclick="loadRive(true)">Bypass cache</button>
+      <button class="secondary" onclick="useFirstArtboard()">First artboard</button>
+      <button class="secondary full" onclick="clearLog()">Clear log</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="stage"><canvas id="canvas"></canvas></div>
+    <div class="log" id="log"></div>
+  </main>
+
 </div>
-
-<div class="row" id="urlRow">
-  <label>Preset:
-    <select id="preset" onchange="onPresetChange()">
-      <option value="">-- pick a file --</option>
-      <option value="Hero_Wbis_landing_page.riv">Hero_Wbis_landing_page.riv</option>
-      <option value="Scripting Hero.riv">Scripting Hero.riv</option>
-      <option value="coming_soon.riv">coming_soon.riv</option>
-      <option value="DayNight.riv">DayNight.riv</option>
-      <option value="Landing_lightning_scripts.riv">Landing_lightning_scripts.riv</option>
-      <option value="landing_page.riv">landing_page.riv</option>
-      <option value="lightning_scripts.riv">lightning_scripts.riv</option>
-      <option value="lightning_test.riv">lightning_test.riv</option>
-      <option value="path_effect_script.riv">path_effect_script.riv</option>
-      <option value="product_ready.riv">product_ready.riv</option>
-      <option value="responsive_design.riv">responsive_design.riv</option>
-      <option value="responsive_designnew.riv">responsive_designnew.riv</option>
-      <option value="ResponsiveIpad.riv">ResponsiveIpad.riv</option>
-      <option value="Responsive.riv">Responsive.riv</option>
-      <option value="Rigging.riv">Rigging.riv</option>
-      <option value="RivSteps.riv">RivSteps.riv</option>
-      <option value="snow_effect.riv">snow_effect.riv</option>
-      <option value="beach_ball.riv">beach_ball.riv</option>
-      <option value="converter_scripts.riv">converter_scripts.riv</option>
-    </select>
-  </label>
-  <label style="flex: 1;">URL:
-    <input type="text" id="url" value="https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/Hero_Wbis_landing_page.riv" style="flex: 1;">
-  </label>
-</div>
-
-<div class="row" id="localRow" style="display: none;">
-  <label>File:
-    <input type="file" id="localFile" accept=".riv" onchange="onLocalFileChange()">
-  </label>
-  <span class="hint" id="localFileInfo"></span>
-</div>
-
-<div class="row">
-  <label>Artboard:
-    <input type="text" id="artboard" value="SpaceSquare" style="min-width: 180px;">
-  </label>
-  <label>State Machine:
-    <input type="text" id="stateMachine" value="State Machine 1" style="min-width: 180px;">
-  </label>
-</div>
-
-<div class="row">
-  <button onclick="loadRive(false)">Reload</button>
-  <button onclick="loadRive(true)" class="secondary">Reload (bypass cache)</button>
-  <button onclick="useFirstArtboard()" class="secondary">Use first artboard</button>
-  <button onclick="clearLog()" class="secondary">Clear log</button>
-</div>
-
-<div id="stage"><canvas id="canvas"></canvas></div>
-<div class="log" id="log"></div>
 
 <script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
 <script>
@@ -104,6 +129,16 @@ function log(msg, cls='') {
 }
 function clearLog() { logEl.innerHTML = ''; }
 
+function populateDatalist(id, values) {
+  const dl = document.getElementById(id);
+  dl.innerHTML = '';
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    dl.appendChild(opt);
+  });
+}
+
 let riveInstance = null;
 let localFileBuffer = null;
 let lastLoadedAvailableArtboards = [];
@@ -112,8 +147,8 @@ const REPO_BASE = 'https://raw.githubusercontent.com/tomaccoux/rive-framer-playe
 
 function onSourceChange() {
   const source = document.getElementById('source').value;
-  document.getElementById('urlRow').style.display = source === 'url' ? 'flex' : 'none';
-  document.getElementById('localRow').style.display = source === 'local' ? 'flex' : 'none';
+  document.getElementById('urlRow').style.display = source === 'url' ? '' : 'none';
+  document.getElementById('localRow').style.display = source === 'local' ? '' : 'none';
 }
 
 function onPresetChange() {
@@ -203,9 +238,14 @@ async function loadRive(bustCache=false) {
         if (abs && abs.length) {
           lastLoadedAvailableArtboards = abs;
           log('Available artboards: ' + abs.join(' · '), 'info');
+          populateDatalist('artboardList', abs);
+          document.getElementById('artboardHint').textContent = abs.length + ' available: ' + abs.slice(0, 3).join(', ') + (abs.length > 3 ? '…' : '');
         }
         const sms = riveInstance.stateMachineNames;
-        if (sms && sms.length) log('Available state machines: ' + sms.join(' · '), 'info');
+        if (sms && sms.length) {
+          log('Available state machines: ' + sms.join(' · '), 'info');
+          populateDatalist('stateMachineList', sms);
+        }
       },
       onLoadError: (e) => {
         const msg = e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
@@ -214,6 +254,10 @@ async function loadRive(bustCache=false) {
       onStateChange: (e) => {
         log('State change: ' + JSON.stringify(e.data), 'meta');
       }
+    });
+
+    window.addEventListener('resize', () => {
+      if (riveInstance) riveInstance.resizeDrawingSurfaceToCanvas();
     });
   } catch (e) {
     log('Init crashed: ' + e.message, 'err');
