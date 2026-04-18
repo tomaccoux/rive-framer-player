@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Rive File Test</title>
+<style>
+  body { margin: 0; font-family: system-ui; background: #0f0f16; color: #fff; padding: 20px; }
+  h1 { font-size: 18px; margin-bottom: 12px; }
+  .controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  select, button, input { background: #1f1f2e; color: #fff; border: 1px solid #333; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+  button { cursor: pointer; background: #4a3aff; border: none; }
+  #stage { width: 600px; height: 600px; background: #1a1a24; border-radius: 12px; margin-bottom: 20px; }
+  canvas { width: 100%; height: 100%; display: block; border-radius: 12px; }
+  .log { background: #1f1f2e; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+  .log .ok { color: #4ade80; }
+  .log .err { color: #ef4444; }
+  .log .info { color: #60a5fa; }
+</style>
+</head>
+<body>
+<h1>Rive File Test - Hero_Wbis_landing_page.riv</h1>
+<div class="controls">
+  <label>Artboard:
+    <input id="artboard" value="SpaceSquare" style="width: 200px;">
+  </label>
+  <label>State Machine:
+    <input id="stateMachine" value="State Machine 1" style="width: 200px;">
+  </label>
+  <button onclick="loadRive()">Reload</button>
+  <button onclick="loadRive(true)">Reload (bypass cache)</button>
+</div>
+<div id="stage"><canvas id="canvas"></canvas></div>
+<div class="log" id="log"></div>
+
+<script src="https://unpkg.com/@rive-app/webgl2@latest/rive.js"></script>
+<script>
+const logEl = document.getElementById('log');
+function log(msg, cls='') {
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = new Date().toISOString().slice(11,19) + ' ' + msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+let riveInstance = null;
+const BASE = 'https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/Hero_Wbis_landing_page.riv';
+
+async function loadRive(bustCache=false) {
+  if (riveInstance) { try { riveInstance.cleanup(); } catch(e){} riveInstance = null; }
+  const url = bustCache ? BASE + '?v=' + Date.now() : BASE;
+  const artboard = document.getElementById('artboard').value.trim();
+  const stateMachine = document.getElementById('stateMachine').value.trim();
+
+  log('Fetching ' + url, 'info');
+  const t0 = performance.now();
+  let buffer;
+  try {
+    const res = await fetch(url, bustCache ? {cache: 'no-store'} : {});
+    if (!res.ok) { log('HTTP ' + res.status + ' ' + res.statusText, 'err'); return; }
+    log('HTTP ' + res.status + ' · ' + res.headers.get('content-length') + ' bytes · etag ' + res.headers.get('etag'), 'ok');
+    buffer = await res.arrayBuffer();
+    log('Downloaded ' + buffer.byteLength + ' bytes in ' + Math.round(performance.now()-t0) + 'ms', 'ok');
+  } catch (e) {
+    log('Fetch failed: ' + e.message, 'err');
+    return;
+  }
+
+  log('Initializing Rive with artboard="' + artboard + '" stateMachine="' + stateMachine + '"', 'info');
+  const canvas = document.getElementById('canvas');
+  try {
+    riveInstance = new rive.Rive({
+      buffer: buffer,
+      canvas: canvas,
+      artboard: artboard || undefined,
+      stateMachines: stateMachine || undefined,
+      autoplay: true,
+      layout: new rive.Layout({ fit: rive.Fit.Contain, alignment: rive.Alignment.Center }),
+      onLoad: () => {
+        log('onLoad fired', 'ok');
+        riveInstance.resizeDrawingSurfaceToCanvas();
+        const abs = riveInstance.artboardNames;
+        if (abs) log('Available artboards: ' + abs.join(', '), 'info');
+        const sms = riveInstance.stateMachineNames;
+        if (sms) log('Available state machines: ' + sms.join(', '), 'info');
+      },
+      onLoadError: (e) => {
+        log('onLoadError: ' + (e?.message || JSON.stringify(e)), 'err');
+      },
+      onStateChange: (e) => {
+        log('State change: ' + JSON.stringify(e.data), 'info');
+      }
+    });
+  } catch (e) {
+    log('Init crashed: ' + e.message, 'err');
+  }
+}
+
+window.addEventListener('load', () => loadRive(true));
+</script>
+</body>
+</html>
