@@ -148,7 +148,7 @@ function populateSelect(id, values, includeDefault = true) {
   values.forEach(v => {
     const opt = document.createElement('option');
     opt.value = v;
-    opt.textContent = v;
+    opt.textContent = formatArtboardLabel(v);
     sel.appendChild(opt);
   });
   const customOpt = document.createElement('option');
@@ -159,6 +159,54 @@ function populateSelect(id, values, includeDefault = true) {
   if (values.includes(currentValue)) sel.value = currentValue;
   else if (currentValue === '__custom__') sel.value = '__custom__';
   else sel.value = '';
+}
+
+function formatArtboardLabel(name) {
+  const meta = artboardMetadata[name];
+  if (!meta) return name;
+  const parts = [name];
+  if (meta.smCount === 0) parts.push('· LEAF (likely component)');
+  else parts.push('· TOP (' + meta.smCount + ' SM)');
+  return parts.join(' ');
+}
+
+async function discoverArtboards(buffer, artboardNames) {
+  log('Discovering component info for ' + artboardNames.length + ' artboards...', 'meta');
+  const hiddenCanvas = document.createElement('canvas');
+  hiddenCanvas.width = 100; hiddenCanvas.height = 100;
+  hiddenCanvas.style.display = 'none';
+  document.body.appendChild(hiddenCanvas);
+
+  for (const name of artboardNames) {
+    try {
+      await new Promise((resolve) => {
+        const r = new rive.Rive({
+          buffer: buffer.slice(0),
+          canvas: hiddenCanvas,
+          artboard: name,
+          autoplay: false,
+          onLoad: () => {
+            const sms = r.stateMachineNames || [];
+            artboardMetadata[name] = { smCount: sms.length, stateMachines: sms };
+            try { r.cleanup(); } catch (e) {}
+            resolve();
+          },
+          onLoadError: () => {
+            artboardMetadata[name] = { smCount: 0, stateMachines: [], error: true };
+            resolve();
+          }
+        });
+        setTimeout(() => resolve(), 2000);
+      });
+    } catch (e) {}
+  }
+  document.body.removeChild(hiddenCanvas);
+
+  const tops = artboardNames.filter(n => artboardMetadata[n]?.smCount > 0);
+  const leafs = artboardNames.filter(n => artboardMetadata[n]?.smCount === 0);
+  log('Discovery done · TOP: ' + tops.join(', ') + ' · LEAF: ' + leafs.join(', '), 'ok');
+
+  populateSelect('artboardSelect', artboardNames);
 }
 
 function onArtboardSelect() {
@@ -202,6 +250,8 @@ function getSelectedStateMachine() {
 let riveInstance = null;
 let localFileBuffer = null;
 let lastLoadedAvailableArtboards = [];
+let lastFileBuffer = null;
+let artboardMetadata = {};
 
 const REPO_BASE = 'https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main';
 
@@ -273,6 +323,10 @@ async function loadRive(bustCache=false) {
   try {
     const result = await getBuffer(bustCache);
     buffer = result.buffer;
+    if (lastFileBuffer !== buffer) {
+      artboardMetadata = {};
+    }
+    lastFileBuffer = buffer;
   } catch (e) {
     log(e.message, 'err');
     return;
@@ -299,7 +353,18 @@ async function loadRive(bustCache=false) {
           lastLoadedAvailableArtboards = abs;
           log('Available artboards: ' + abs.join(' · '), 'info');
           populateSelect('artboardSelect', abs);
-          document.getElementById('artboardHint').textContent = abs.length + ' available · pick from list or use custom';
+          document.getElementById('artboardHint').textContent = abs.length + ' available · discovering components...';
+          // Kick off component discovery pass
+          if (lastFileBuffer) {
+            const needsDiscovery = abs.some(n => !artboardMetadata[n]);
+            if (needsDiscovery) {
+              discoverArtboards(lastFileBuffer, abs).then(() => {
+                const tops = abs.filter(n => artboardMetadata[n]?.smCount > 0).length;
+                const leafs = abs.filter(n => artboardMetadata[n]?.smCount === 0).length;
+                document.getElementById('artboardHint').textContent = tops + ' TOP · ' + leafs + ' LEAF (likely components)';
+              });
+            }
+          }
         }
         const sms = riveInstance.stateMachineNames;
         if (sms && sms.length) {
