@@ -6,29 +6,89 @@
 <style>
   body { margin: 0; font-family: system-ui; background: #0f0f16; color: #fff; padding: 20px; }
   h1 { font-size: 18px; margin-bottom: 12px; }
-  .controls { margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  select, button, input { background: #1f1f2e; color: #fff; border: 1px solid #333; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+  .row { margin-bottom: 10px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .row label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #aaa; }
+  select, button, input { background: #1f1f2e; color: #fff; border: 1px solid #333; padding: 8px 12px; border-radius: 6px; font-size: 14px; font-family: inherit; }
   button { cursor: pointer; background: #4a3aff; border: none; }
-  #stage { width: 600px; height: 600px; background: #1a1a24; border-radius: 12px; margin-bottom: 20px; }
+  button.secondary { background: #333; }
+  button:hover { opacity: 0.9; }
+  input[type="text"] { min-width: 280px; font-family: monospace; font-size: 12px; }
+  input[type="file"] { padding: 6px; }
+  #stage { width: 600px; height: 600px; background: #1a1a24; border-radius: 12px; margin: 16px 0; }
   canvas { width: 100%; height: 100%; display: block; border-radius: 12px; }
   .log { background: #1f1f2e; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
   .log .ok { color: #4ade80; }
   .log .err { color: #ef4444; }
   .log .info { color: #60a5fa; }
+  .log .meta { color: #888; }
+  .hint { font-size: 12px; color: #888; margin-left: 4px; }
 </style>
 </head>
 <body>
-<h1>Rive File Test - Hero_Wbis_landing_page.riv</h1>
-<div class="controls">
+<h1>Rive File Test</h1>
+
+<div class="row">
+  <label>Source:
+    <select id="source" onchange="onSourceChange()">
+      <option value="url">URL / file in repo</option>
+      <option value="local">Local file (upload)</option>
+    </select>
+  </label>
+</div>
+
+<div class="row" id="urlRow">
+  <label>Preset:
+    <select id="preset" onchange="onPresetChange()">
+      <option value="">-- pick a file --</option>
+      <option value="Hero_Wbis_landing_page.riv">Hero_Wbis_landing_page.riv</option>
+      <option value="Scripting Hero.riv">Scripting Hero.riv</option>
+      <option value="coming_soon.riv">coming_soon.riv</option>
+      <option value="DayNight.riv">DayNight.riv</option>
+      <option value="Landing_lightning_scripts.riv">Landing_lightning_scripts.riv</option>
+      <option value="landing_page.riv">landing_page.riv</option>
+      <option value="lightning_scripts.riv">lightning_scripts.riv</option>
+      <option value="lightning_test.riv">lightning_test.riv</option>
+      <option value="path_effect_script.riv">path_effect_script.riv</option>
+      <option value="product_ready.riv">product_ready.riv</option>
+      <option value="responsive_design.riv">responsive_design.riv</option>
+      <option value="responsive_designnew.riv">responsive_designnew.riv</option>
+      <option value="ResponsiveIpad.riv">ResponsiveIpad.riv</option>
+      <option value="Responsive.riv">Responsive.riv</option>
+      <option value="Rigging.riv">Rigging.riv</option>
+      <option value="RivSteps.riv">RivSteps.riv</option>
+      <option value="snow_effect.riv">snow_effect.riv</option>
+      <option value="beach_ball.riv">beach_ball.riv</option>
+      <option value="converter_scripts.riv">converter_scripts.riv</option>
+    </select>
+  </label>
+  <label style="flex: 1;">URL:
+    <input type="text" id="url" value="https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/Hero_Wbis_landing_page.riv" style="flex: 1;">
+  </label>
+</div>
+
+<div class="row" id="localRow" style="display: none;">
+  <label>File:
+    <input type="file" id="localFile" accept=".riv" onchange="onLocalFileChange()">
+  </label>
+  <span class="hint" id="localFileInfo"></span>
+</div>
+
+<div class="row">
   <label>Artboard:
-    <input id="artboard" value="SpaceSquare" style="width: 200px;">
+    <input type="text" id="artboard" value="SpaceSquare" style="min-width: 180px;">
   </label>
   <label>State Machine:
-    <input id="stateMachine" value="State Machine 1" style="width: 200px;">
+    <input type="text" id="stateMachine" value="State Machine 1" style="min-width: 180px;">
   </label>
-  <button onclick="loadRive()">Reload</button>
-  <button onclick="loadRive(true)">Reload (bypass cache)</button>
 </div>
+
+<div class="row">
+  <button onclick="loadRive(false)">Reload</button>
+  <button onclick="loadRive(true)" class="secondary">Reload (bypass cache)</button>
+  <button onclick="useFirstArtboard()" class="secondary">Use first artboard</button>
+  <button onclick="clearLog()" class="secondary">Clear log</button>
+</div>
+
 <div id="stage"><canvas id="canvas"></canvas></div>
 <div class="log" id="log"></div>
 
@@ -42,31 +102,91 @@ function log(msg, cls='') {
   logEl.appendChild(line);
   logEl.scrollTop = logEl.scrollHeight;
 }
+function clearLog() { logEl.innerHTML = ''; }
 
 let riveInstance = null;
-const BASE = 'https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main/Hero_Wbis_landing_page.riv';
+let localFileBuffer = null;
+let lastLoadedAvailableArtboards = [];
 
-async function loadRive(bustCache=false) {
-  if (riveInstance) { try { riveInstance.cleanup(); } catch(e){} riveInstance = null; }
-  const url = bustCache ? BASE + '?v=' + Date.now() : BASE;
-  const artboard = document.getElementById('artboard').value.trim();
-  const stateMachine = document.getElementById('stateMachine').value.trim();
+const REPO_BASE = 'https://raw.githubusercontent.com/tomaccoux/rive-framer-player/main';
+
+function onSourceChange() {
+  const source = document.getElementById('source').value;
+  document.getElementById('urlRow').style.display = source === 'url' ? 'flex' : 'none';
+  document.getElementById('localRow').style.display = source === 'local' ? 'flex' : 'none';
+}
+
+function onPresetChange() {
+  const preset = document.getElementById('preset').value;
+  if (preset) {
+    document.getElementById('url').value = REPO_BASE + '/' + encodeURIComponent(preset).replace(/%20/g, '%20');
+  }
+}
+
+function onLocalFileChange() {
+  const fileInput = document.getElementById('localFile');
+  const file = fileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    localFileBuffer = e.target.result;
+    document.getElementById('localFileInfo').textContent = file.name + ' · ' + file.size + ' bytes';
+    log('Local file loaded: ' + file.name + ' · ' + file.size + ' bytes', 'ok');
+  };
+  reader.onerror = (e) => log('File read failed: ' + e.message, 'err');
+  reader.readAsArrayBuffer(file);
+}
+
+function useFirstArtboard() {
+  if (lastLoadedAvailableArtboards.length === 0) {
+    log('No artboards discovered yet. Load a file first.', 'err');
+    return;
+  }
+  document.getElementById('artboard').value = lastLoadedAvailableArtboards[0];
+  log('Set artboard to: ' + lastLoadedAvailableArtboards[0], 'info');
+  loadRive(false);
+}
+
+async function getBuffer(bustCache) {
+  const source = document.getElementById('source').value;
+
+  if (source === 'local') {
+    if (!localFileBuffer) { throw new Error('No local file selected'); }
+    return { buffer: localFileBuffer, url: '(local file)' };
+  }
+
+  let url = document.getElementById('url').value.trim();
+  if (!url) throw new Error('URL is empty');
+  if (bustCache) url += (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
 
   log('Fetching ' + url, 'info');
   const t0 = performance.now();
+  const res = await fetch(url, bustCache ? { cache: 'no-store' } : {});
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+  const len = res.headers.get('content-length');
+  const etag = res.headers.get('etag');
+  log('HTTP ' + res.status + (len ? ' · ' + len + ' bytes' : '') + (etag ? ' · etag ' + etag.slice(0, 20) + '...' : ''), 'ok');
+  const buffer = await res.arrayBuffer();
+  log('Downloaded ' + buffer.byteLength + ' bytes in ' + Math.round(performance.now()-t0) + 'ms', 'ok');
+  return { buffer, url };
+}
+
+async function loadRive(bustCache=false) {
+  if (riveInstance) { try { riveInstance.cleanup(); } catch(e){} riveInstance = null; }
+
   let buffer;
   try {
-    const res = await fetch(url, bustCache ? {cache: 'no-store'} : {});
-    if (!res.ok) { log('HTTP ' + res.status + ' ' + res.statusText, 'err'); return; }
-    log('HTTP ' + res.status + ' · ' + res.headers.get('content-length') + ' bytes · etag ' + res.headers.get('etag'), 'ok');
-    buffer = await res.arrayBuffer();
-    log('Downloaded ' + buffer.byteLength + ' bytes in ' + Math.round(performance.now()-t0) + 'ms', 'ok');
+    const result = await getBuffer(bustCache);
+    buffer = result.buffer;
   } catch (e) {
-    log('Fetch failed: ' + e.message, 'err');
+    log(e.message, 'err');
     return;
   }
 
-  log('Initializing Rive with artboard="' + artboard + '" stateMachine="' + stateMachine + '"', 'info');
+  const artboard = document.getElementById('artboard').value.trim();
+  const stateMachine = document.getElementById('stateMachine').value.trim();
+
+  log('Initializing Rive · artboard="' + (artboard || '(default)') + '" · stateMachine="' + (stateMachine || '(default)') + '"', 'info');
   const canvas = document.getElementById('canvas');
   try {
     riveInstance = new rive.Rive({
@@ -80,15 +200,19 @@ async function loadRive(bustCache=false) {
         log('onLoad fired', 'ok');
         riveInstance.resizeDrawingSurfaceToCanvas();
         const abs = riveInstance.artboardNames;
-        if (abs) log('Available artboards: ' + abs.join(', '), 'info');
+        if (abs && abs.length) {
+          lastLoadedAvailableArtboards = abs;
+          log('Available artboards: ' + abs.join(' · '), 'info');
+        }
         const sms = riveInstance.stateMachineNames;
-        if (sms) log('Available state machines: ' + sms.join(', '), 'info');
+        if (sms && sms.length) log('Available state machines: ' + sms.join(' · '), 'info');
       },
       onLoadError: (e) => {
-        log('onLoadError: ' + (e?.message || JSON.stringify(e)), 'err');
+        const msg = e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
+        log('onLoadError: ' + msg, 'err');
       },
       onStateChange: (e) => {
-        log('State change: ' + JSON.stringify(e.data), 'info');
+        log('State change: ' + JSON.stringify(e.data), 'meta');
       }
     });
   } catch (e) {
