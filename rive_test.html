@@ -92,14 +92,20 @@
     <div class="section-title">Playback</div>
     <div class="field">
       <label>Artboard</label>
-      <input type="text" id="artboard" value="SpaceSquare" placeholder="(default)" list="artboardList">
-      <datalist id="artboardList"></datalist>
-      <div class="hint" id="artboardHint">Type or pick from list after first load</div>
+      <select id="artboardSelect" onchange="onArtboardSelect()">
+        <option value="">(default — first artboard)</option>
+        <option value="__custom__">Custom name…</option>
+      </select>
+      <input type="text" id="artboard" value="SpaceSquare" placeholder="Type artboard name" style="margin-top: 6px; display: none;">
+      <div class="hint" id="artboardHint">Load a file to populate the list</div>
     </div>
     <div class="field">
       <label>State Machine</label>
-      <input type="text" id="stateMachine" value="State Machine 1" placeholder="(default)" list="stateMachineList">
-      <datalist id="stateMachineList"></datalist>
+      <select id="stateMachineSelect" onchange="onStateMachineSelect()">
+        <option value="">(default)</option>
+        <option value="__custom__">Custom name…</option>
+      </select>
+      <input type="text" id="stateMachine" value="State Machine 1" placeholder="Type state machine name" style="margin-top: 6px; display: none;">
     </div>
 
     <div class="buttons">
@@ -129,14 +135,68 @@ function log(msg, cls='') {
 }
 function clearLog() { logEl.innerHTML = ''; }
 
-function populateDatalist(id, values) {
-  const dl = document.getElementById(id);
-  dl.innerHTML = '';
+function populateSelect(id, values, includeDefault = true) {
+  const sel = document.getElementById(id);
+  const currentValue = sel.value;
+  sel.innerHTML = '';
+  if (includeDefault) {
+    const defOpt = document.createElement('option');
+    defOpt.value = '';
+    defOpt.textContent = '(default — first available)';
+    sel.appendChild(defOpt);
+  }
   values.forEach(v => {
     const opt = document.createElement('option');
     opt.value = v;
-    dl.appendChild(opt);
+    opt.textContent = v;
+    sel.appendChild(opt);
   });
+  const customOpt = document.createElement('option');
+  customOpt.value = '__custom__';
+  customOpt.textContent = 'Custom name…';
+  sel.appendChild(customOpt);
+
+  if (values.includes(currentValue)) sel.value = currentValue;
+  else if (currentValue === '__custom__') sel.value = '__custom__';
+  else sel.value = '';
+}
+
+function onArtboardSelect() {
+  const sel = document.getElementById('artboardSelect');
+  const input = document.getElementById('artboard');
+  if (sel.value === '__custom__') {
+    input.style.display = '';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = sel.value;
+    if (sel.value !== '') loadRive(false);
+  }
+}
+
+function onStateMachineSelect() {
+  const sel = document.getElementById('stateMachineSelect');
+  const input = document.getElementById('stateMachine');
+  if (sel.value === '__custom__') {
+    input.style.display = '';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = sel.value;
+    if (sel.value !== '') loadRive(false);
+  }
+}
+
+function getSelectedArtboard() {
+  const sel = document.getElementById('artboardSelect');
+  if (sel.value === '__custom__') return document.getElementById('artboard').value.trim();
+  return sel.value;
+}
+
+function getSelectedStateMachine() {
+  const sel = document.getElementById('stateMachineSelect');
+  if (sel.value === '__custom__') return document.getElementById('stateMachine').value.trim();
+  return sel.value;
 }
 
 let riveInstance = null;
@@ -218,8 +278,8 @@ async function loadRive(bustCache=false) {
     return;
   }
 
-  const artboard = document.getElementById('artboard').value.trim();
-  const stateMachine = document.getElementById('stateMachine').value.trim();
+  const artboard = getSelectedArtboard();
+  const stateMachine = getSelectedStateMachine();
 
   log('Initializing Rive · artboard="' + (artboard || '(default)') + '" · stateMachine="' + (stateMachine || '(default)') + '"', 'info');
   const canvas = document.getElementById('canvas');
@@ -238,13 +298,13 @@ async function loadRive(bustCache=false) {
         if (abs && abs.length) {
           lastLoadedAvailableArtboards = abs;
           log('Available artboards: ' + abs.join(' · '), 'info');
-          populateDatalist('artboardList', abs);
-          document.getElementById('artboardHint').textContent = abs.length + ' available: ' + abs.slice(0, 3).join(', ') + (abs.length > 3 ? '…' : '');
+          populateSelect('artboardSelect', abs);
+          document.getElementById('artboardHint').textContent = abs.length + ' available · pick from list or use custom';
         }
         const sms = riveInstance.stateMachineNames;
         if (sms && sms.length) {
           log('Available state machines: ' + sms.join(' · '), 'info');
-          populateDatalist('stateMachineList', sms);
+          populateSelect('stateMachineSelect', sms);
         }
       },
       onLoadError: (e) => {
@@ -264,7 +324,14 @@ async function loadRive(bustCache=false) {
   }
 }
 
-window.addEventListener('load', () => loadRive(true));
+window.addEventListener('load', () => {
+  // Initial state: show the custom inputs with pre-filled values
+  document.getElementById('artboardSelect').value = '__custom__';
+  document.getElementById('artboard').style.display = '';
+  document.getElementById('stateMachineSelect').value = '__custom__';
+  document.getElementById('stateMachine').style.display = '';
+  loadRive(true);
+});
 </script>
 </body>
 </html>
