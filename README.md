@@ -153,6 +153,38 @@ addPropertyControls(RivePlayer, {
 - AWS S3
 - Any static file hosting
 
+## Use on Any Website (no Framer)
+
+The player works as a standalone iframe on any site, Webflow, Wordpress, plain HTML, anywhere iframes are supported. No code component needed.
+
+**Basic embed:**
+
+```html
+<iframe
+  src="https://tomaccoux.github.io/rive-framer-player/player.html?src=YOUR_RIVE_URL&fit=cover&align=center"
+  width="100%"
+  height="600"
+  style="border:none;"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+></iframe>
+```
+
+**Responsive embed** (keeps aspect ratio for portrait or square files):
+
+```html
+<div style="aspect-ratio: 9/16; max-width: 400px; margin: 0 auto;">
+  <iframe
+    src="https://tomaccoux.github.io/rive-framer-player/player.html?src=YOUR_RIVE_URL&fit=cover&align=center"
+    style="width:100%; height:100%; border:none;"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+  ></iframe>
+</div>
+```
+
+Replace `YOUR_RIVE_URL` with the direct link to your `.riv` file (hosted on GitHub, Dropbox direct link, or any CDN).
+
+Adjust the `aspect-ratio` value to match your Rive file (e.g., `16/9` for landscape, `1/1` for square, `9/16` for portrait).
+
 ## URL Parameters (Advanced)
 
 You can also use the player directly via URL:
@@ -171,4 +203,8 @@ https://tomaccoux.github.io/rive-framer-player/player.html?src=YOUR_RIVE_URL&fit
 
 ## License
 
-MIT
+**Code** (`player.html`, the Framer component snippet, and any source files): [MIT License](LICENSE). Use it anywhere, commercial or personal, no restrictions.
+
+**Rive files** (`.riv` files in this repository): © Tom Acco / [Rive Masterclass](https://rivemasterclass.com). All rights reserved. These are course exercise files and demo animations, included here for reference only. Please do not redistribute, repackage, or use them in commercial or public projects without permission.
+
+If you want to learn how to build animations like these, check out the [Rive Masterclass](https://rivemasterclass.com).
